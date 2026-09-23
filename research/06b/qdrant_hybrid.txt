@@ -1,0 +1,513 @@
+### SOURCE: https://qdrant.tech/documentation/search/hybrid-queries/
+
+Hybrid Queries - Qdrant- - - - - - - - - - - 
+- Develop
+- Deploy
+- Ecosystem
+- Learn
+- API Reference
+Search
+Log in
+Start Free
+Search
+- 
+Develop
+- 
+Deploy
+- 
+Ecosystem
+- 
+Learn
+- 
+API Reference
+ Local Quickstart
+Cloud Quickstart
+User Manual
+Manage Data Search Inference Qdrant Edge Qdrant Web UI
+API & SDKs
+Qdrant Tools
+Agent Skills
+FastEmbed Qdrant MCP Server
+Tutorials
+Overview
+Basics Search Engineering Operations & Scale Develop & Implement Support
+Release Notes
+FAQ 
+ Local Quickstart
+Cloud Quickstart
+User Manual
+Manage Data Search Inference Qdrant Edge Qdrant Web UI
+API & SDKs
+Qdrant Tools
+Agent Skills
+FastEmbed Qdrant MCP Server
+Tutorials
+Overview
+Basics Search Engineering Operations & Scale Develop & Implement Support
+Release Notes
+FAQ 
+- Documentation
+- 
+- Search
+- 
+- Hybrid Queries
+Hybrid and Multi-Stage Queries
+Available as of v1.10.0
+With the introduction of multiple named vectors per point, there are use-cases when the best search is obtained by combining multiple queries,
+or by performing the search in more than one stage.
+Qdrant has a flexible and universal interface to make this possible, called Query API (API reference).
+The main component for making the combinations of queries possible is the prefetch parameter, which enables making sub-requests.
+Specifically, whenever a query has at least one prefetch, Qdrant will:
+- Perform the prefetch query (or queries),
+- Apply the main query over the results of its prefetch(es).
+Additionally, prefetches can have prefetches themselves, so you can have nested prefetches.
+Using offset parameter only affects the main query. This means that the prefetches must have a limit of at least limit + offset of the main query, otherwise you can get an empty result.Hybrid Search
+One of the most common problems when you have different representations of the same data is to combine the queried points for each representation into a single result.
+Fusing results from multiple queries
+For example, in text search, it is often useful to combine dense and sparse vectors to get the best of both worlds: semantic understanding from dense vectors and precise word matching from sparse vectors.
+Qdrant has a few ways of fusing the results from different queries: rrf and dbsf
+Reciprocal Rank Fusion (RRF)
+RRF considers the positions of results within each query and boosts those that appear closer to the top in multiple sets of results. The score of a document is calculated using its rank in each result set:$$ score(d\in D) = \sum_{r_d\in R(d)} \frac{1}{k + \frac{r_d + 1}{w_r} - 1} $$
+Where:
+- $D$ the set of points across all results
+- $R(d)$ is the set of rankings for a particular document
+- $k$ is a constant (set to 2 by default)
+- $r$ is an ordered set of results from one source
+- $r_d$ is the rank of document $d$ in ranking $r$
+- $w_r$ is the weight of ranking $r$ (set to 1 by default)
+Qdrant uses zero-based rank positions; the top result has $r_d = 0$.
+Because $w_r$ defaults to 1, without setting explicit weights, the formula can be simplified to the original RRF function:
+$$ score(d\in D) = \sum_{r_d\in R(d)} \frac{1}{k + r_d} $$
+Here is an example of RRF for a query containing two prefetches against different named vectors configured to hold sparse and dense vectors, respectively.
+```
+POST /collections/{collection_name}/points/query
+{
+ "prefetch": [
+ {
+ "query": { 
+ "indices": [1, 42], // <┐
+ "values": [0.22, 0.8] // <┴─sparse vector
+ },
+ "using": "sparse",
+ "limit": 20
+ },
+ {
+ "query": [0.01, 0.45, 0.67, ...], // <-- dense vector
+ "using": "dense",
+ "limit": 20
+ }
+ ],
+ "query": { "rrf": {} }, // <--- reciprocal rank fusion with defaults
+ "limit": 10
+}
+```
+```
+from qdrant_client import QdrantClient, models
+client = QdrantClient(url="http://localhost:6333")
+client.query_points(
+ collection_name="{collection_name}",
+ prefetch=[
+ models.Prefetch(
+ query=models.SparseVector(indices=[1, 42], values=[0.22, 0.8]),
+ using="sparse",
+ limit=20,
+ ),
+ models.Prefetch(
+ query=[0.01, 0.45, 0.67], # <-- dense vector
+ using="dense",
+ limit=20,
+ ),
+ ],
+ query=models.RrfQuery(rrf=models.Rrf()),
+ limit=10,
+)
+```
+```
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.query("{collection_name}", {
+ prefetch: [
+ {
+ query: {
+ values: [0.22, 0.8],
+ indices: [1, 42],
+ },
+ using: 'sparse',
+ limit: 20,
+ },
+ {
+ query: [0.01, 0.45, 0.67],
+ using: 'dense',
+ limit: 20,
+ },
+ ],
+ query: {
+ rrf: {},
+ },
+ limit: 10,
+});
+```
+```
+use qdrant_client::Qdrant;
+use qdrant_client::qdrant::{PrefetchQueryBuilder, Query, QueryPointsBuilder, RrfBuilder};
+let client = Qdrant::from_url("http://localhost:6334").build()?;
+client.query(
+ QueryPointsBuilder::new("{collection_name}")
+ .add_prefetch(PrefetchQueryBuilder::default()
+ .query(Query::new_nearest([(1, 0.22), (42, 0.8)].as_slice()))
+ .using("sparse")
+ .limit(20u64)
+ )
+ .add_prefetch(PrefetchQueryBuilder::default()
+ .query(Query::new_nearest(vec![0.01, 0.45, 0.67]))
+ .using("dense")
+ .limit(20u64)
+ )
+ .query(Query::new_rrf(RrfBuilder::default()))
+ .limit(10u64)
+).await?;
+```
+```
+import static io.qdrant.client.QueryFactory.nearest;
+import static io.qdrant.client.QueryFactory.rrf;
+import io.qdrant.client.QdrantClient;
+import io.qdrant.client.QdrantGrpcClient;
+import io.qdrant.client.grpc.Points.PrefetchQuery;
+import io.qdrant.client.grpc.Points.QueryPoints;
+import io.qdrant.client.grpc.Points.Rrf;
+import java.util.List;
+QdrantClient client = new QdrantClient(QdrantGrpcClient.newBuilder("localhost", 6334, false).build());
+client.queryAsync(
+ QueryPoints.newBuilder()
+ .setCollectionName("{collection_name}")
+ .addPrefetch(PrefetchQuery.newBuilder()
+ .setQuery(nearest(List.of(0.22f, 0.8f), List.of(1, 42)))
+ .setUsing("sparse")
+ .setLimit(20)
+ .build())
+ .addPrefetch(PrefetchQuery.newBuilder()
+ .setQuery(nearest(List.of(0.01f, 0.45f, 0.67f)))
+ .setUsing("dense")
+ .setLimit(20)
+ .build())
+ .setQuery(rrf(Rrf.newBuilder().build()))
+ .setLimit(10)
+ .build())
+ .get();
+```
+```
+using Qdrant.Client;
+using Qdrant.Client.Grpc;
+var client = new QdrantClient("localhost", 6334);
+await client.QueryAsync(
+ collectionName: "{collection_name}",
+ prefetch: new List < PrefetchQuery > {
+ new() {
+ Query = new(float, uint)[] {
+ (0.22f, 1), (0.8f, 42),
+ },
+ Using = "sparse",
+ Limit = 20
+ },
+ new() {
+ Query = new float[] {
+ 0.01f, 0.45f, 0.67f
+ },
+ Using = "dense",
+ Limit = 20
+ }
+ },
+ query: new Rrf(),
+ limit: 10
+);
+```
+```
+import (
+ "context"
+ "github.com/qdrant/go-client/qdrant"
+)
+client, err := qdrant.NewClient(&qdrant.Config{
+ Host: "localhost",
+ Port: 6334,
+})
+client.Query(context.Background(), &qdrant.QueryPoints{
+ CollectionName: "{collection_name}",
+ Prefetch: []*qdrant.PrefetchQuery{
+ {
+ Query: qdrant.NewQuerySparse([]uint32{1, 42}, []float32{0.22, 0.8}),
+ Using: qdrant.PtrOf("sparse"),
+ Limit: qdrant.PtrOf(uint64(20)),
+ },
+ {
+ Query: qdrant.NewQueryDense([]float32{0.01, 0.45, 0.67}),
+ Using: qdrant.PtrOf("dense"),
+ Limit: qdrant.PtrOf(uint64(20)),
+ },
+ },
+ Query: qdrant.NewQueryRRF(&qdrant.Rrf{}),
+ Limit: qdrant.PtrOf(uint64(10)),
+})
+```
+Setting RRF Constant k
+Available as of v1.16.0
+To set the constant $k$ in the formula:
+```
+POST /collections/{collection_name}/points/query
+{
+ "prefetch": [
+ // 2+ prefetches here
+ ],
+ "query": { "rrf": {"k": 60 } }, // <--- parameterized reciprocal rank fusion
+ "limit": 10
+}
+```
+```
+from qdrant_client import QdrantClient, models
+client = QdrantClient(url="http://localhost:6333")
+client.query_points(
+ collection_name="{collection_name}",
+ prefetch=[
+ # 2+ prefetches here
+ ],
+ query=models.RrfQuery(rrf=models.Rrf(k=60)),
+)
+```
+```
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.query("{collection_name}", {
+ prefetch: [
+ // 2+ prefetches here
+ ],
+ query: { rrf: { k: 60 } },
+});
+```
+```
+use qdrant_client::Qdrant;
+use qdrant_client::qdrant::{RrfBuilder, Query, QueryPointsBuilder};
+let client = Qdrant::from_url("http://localhost:6334").build()?;
+client.query(
+ QueryPointsBuilder::new("{collection_name}")
+ // .add_prefetch(...) <┐
+ // .add_prefetch(...) <┴─ 2+ prefetches here
+ .query(Query::new_rrf(RrfBuilder::with_k(60)))
+).await?;
+```
+```
+import static io.qdrant.client.QueryFactory.rrf;
+import io.qdrant.client.QdrantClient;
+import io.qdrant.client.QdrantGrpcClient;
+import io.qdrant.client.grpc.Points.PrefetchQuery;
+import io.qdrant.client.grpc.Points.QueryPoints;
+import io.qdrant.client.grpc.Points.Rrf;
+import java.util.List;
+QdrantClient client = new QdrantClient(QdrantGrpcClient.newBuilder("localhost", 6334, false).build());
+client
+ .queryAsync(
+ QueryPoints.newBuilder()
+ .setCollectionName("{collection_name}")
+ // .addPrefetch(...) <┐
+ // .addPrefetch(...) <┴─ 2+ prefetches here
+ .setQuery(rrf(Rrf.newBuilder().setK(60).build()))
+ .build())
+ .get();
+```
+```
+using Qdrant.Client;
+using Qdrant.Client.Grpc;
+var client = new QdrantClient("localhost", 6334);
+await client.QueryAsync(
+ collectionName: "{collection_name}",
+ prefetch: new List<PrefetchQuery>
+ {
+ // 2+ prefetches here
+ },
+ query: new Rrf
+ {
+ K = 60,
+ }
+);
+```
+```
+import (
+ "context"
+ "github.com/qdrant/go-client/qdrant"
+)
+client, err := qdrant.NewClient(&qdrant.Config{
+ Host: "localhost",
+ Port: 6334,
+})
+client.Query(context.Background(), &qdrant.QueryPoints{
+ CollectionName: "{collection_name}",
+ Prefetch: []*qdrant.PrefetchQuery{
+ // 2+ prefetches here
+ },
+ Query: qdrant.NewQueryRRF(
+ &qdrant.Rrf{
+ K: qdrant.PtrOf(uint32(60)),
+ }),
+})
+```
+Weighted RRF
+Available as of v1.17.0
+By default, each query is assigned an equal weight. In reality, one retriever is often stronger than the other for a given workload. For example, a dense retriever may dominate on natural-language queries, while BM25 may win on identifier-heavy ones. Assigning equal weight to both can let the weaker retriever drag down results. To address this, you can assign greater weight to rankers that perform well on your evaluation set.
+The rrf query allows you to configure relative weights for each of the prefetches. For example, if you have two prefetches and assign a weight of 3.0 to the first and 1.0 to the second, a document ranked third in the first query scores the same as a document ranked first in the second query. In the case of non-overlapping result sets, these weights return three results from the first set for every one result from the second set.
+Weights should be provided as an array of numbers, where each weight is applied to the corresponding prefetch in the order they are defined. The number of weights must match the number of prefetches.
+```
+POST /collections/{collection_name}/points/query
+{
+ "prefetch": [
+ // Prefetches here
+ ],
+ "query": {
+ "rrf": {
+ "weights": [3.0, 1.0]
+ }
+ },
+ "limit": 10
+}
+```
+```
+from qdrant_client import QdrantClient, models
+client = QdrantClient(url="http://localhost:6333")
+client.query_points(
+ collection_name="{collection_name}",
+ prefetch=[
+ # 2+ prefetches here
+ ],
+ query=models.RrfQuery(rrf=models.Rrf(weights=[3.0, 1.0])),
+)
+```
+```
+import { QdrantClient } from "@qdrant/js-client-rest";
+const client = new QdrantClient({ host: "localhost", port: 6333 });
+client.query("{collection_name}", {
+ prefetch: [
+ // Prefetches here
+ ],
+ query: {
+ rrf: {
+ weights: [3.0, 1.0],
+ },
+ },
+ limit: 10,
+});
+```
+```
+use qdrant_client::qdrant::{Query, QueryPointsBuilder, RrfBuilder};
+use qdrant_client::Qdrant;
+let client = Qdrant::from_url("http://localhost:6334").build()?;
+client
+ .query(
+ QueryPointsBuilder::new("{collection_name}")
+ // .add_prefetch(...) <┐
+ // .add_prefetch(...) <┴─ 2+ prefetches here
+ .query(Query::new_rrf(RrfBuilder::new().weights(vec![3.0, 1.0]))),
+ )
+ .await?;
+```
+```
+import static io.qdrant.client.QueryFactory.rrf;
+import io.qdrant.client.QdrantClient;
+import io.qdrant.client.QdrantGrpcClient;
+import io.qdrant.client.grpc.Points.PrefetchQuery;
+import io.qdrant.client.grpc.Points.QueryPoints;
+import io.qdrant.client.grpc.Points.Rrf;
+import java.util.List;
+QdrantClient client = new QdrantClient(QdrantGrpcClient.newBuilder("localhost", 6334, false).build());
+client
+ .queryAsync(
+ QueryPoints.newBuilder()
+ .setCollectionName("{collection_name}")
+ // .addPrefetch(...) <┐
+ // .addPrefetch(...) <┴─ Prefetches here
+ .setQuery(rrf(Rrf.newBuilder().addAllWeights(List.of(3.0f, 1.0f)).build()))
+ .build())
+ .get();
+```
+```
+using Qdrant.Client;
+using Qdrant.Client.Grpc;
+var client = new QdrantClient("localhost", 6334);
+await client.QueryAsync(
+ collectionName: "{collection_name}",
+ prefetch: new List<PrefetchQuery>
+ {
+ // 2+ prefetches here
+ },
+ query: new Rrf
+ {
+ Weights = {3.0f, 1.0f},
+ }
+);
+```
+```
+import (
+ "context"
+ "github.com/qdrant/go-client/qdrant"
+)
+client, err := qdrant.NewClient(&qdrant.Config{
+ Host: "localhost",
+ Port: 6334,
+})
+client.Query(context.Background(), &qdrant.QueryPoints{
+ CollectionName: "{collection_name}",
+ Prefetch: []*qdrant.PrefetchQuery{
+ // Prefetches here
+ },
+ Query: qdrant.NewQueryRRF(
+ &qdrant.Rrf{
+ Weights: []float32{3.0, 1.0},
+ }),
+})
+```
+Weights are a configuration choice, not something you can tune arbitrarily. The most reliable way to set them is by testing on your data.
+- With an eval set (queries paired with known-relevant docs): split your eval queries in two. Try different weights on the first half, then measure on the second half. Measuring on the same queries you tuned on inflates the result. The Choosing a Fusion Method notebook provides a reusable tune_rrf_weights grid-search helper you can adapt to a train/val split.
+- Without an eval set: leave weights at the default (1.0, 1.0). Hand-tuned weights without measurement are unlikely to beat the default reliably.
+Retune when your retrievers change (new embedding model, new chunking), when your corpus drifts substantially, or on a fixed cadence with a fresh eval sample.
+Distribution-Based Score Fusion (DBSF)
+Available as of v1.11.0
+DBSF keeps the raw scores from each query but normalizes their distributions before combining. For each retriever’s returned set, it computes the mean $\mu$ and sample standard deviation $\sigma$, then normalizes every score using the 3-sigma extremes as endpoints:
+$$ \hat{s} = \frac{s - (\mu - 3\sigma)}{6\sigma} $$
+Normalized scores are summed across retrievers. Different score magnitudes no longer matter because each retriever contributes on the same comparable range.
+dbsf is stateless and computes its normalization limits from each query's returned points, not from all the scores it has seen. Scores are not clipped to [0, 1]; values outside the 3-sigma range remain outside it after the remap. If all returned scores are identical (or only one point is returned), DBSF emits 0.5 rather than dividing by zero.DBSF is a reasonable choice when you trust your retrievers’ raw scores to carry magnitude information. On well-calibrated retrievers DBSF can outperform tuned weighted RRF; on others weighted RRF wins. Neither dominates the other in general, so use your eval set to choose between them. Two caveats apply: the statistics come from the prefetch top-k (a small sample), and a single dominant outlier in that top-k can skew normalization for that query. Increase the prefetch limit if you see unstable rankings.
+```
+POST /collections/{collection_name}/points/query
+{
+ "prefetch": [
+ {
+ "query": { 
+ "indices": [1, 42], // <┐
+ "values": [0.22, 0.8] // <┴─sparse vector
+ },
+ "using": "sparse",
+ "limit": 20
+ },
+ {
+ "query": [0.01, 0.45, 0.67, ...], // <-- dense vector
+ "using": "dense",
+ "limit": 20
+ }
+ ],
+ "query": { "fusion": "dbsf" }, // <--- distribution-based score fusion
+ "limit": 10
+}
+```
+```
+from qdrant_client import QdrantClient, models
+client = QdrantClient(url="http://localhost:6333")
+client.query_points(
+ collection_name="{collection_name}",
+ prefetch=[
+ models.Prefetch(
+ query=models.SparseVector(indices=[1, 42], values=[0.22, 0.8]),
+ using="sparse",
+ limit=20,
+ ),
+ models.Prefetch(
+ query=[0.01, 0.45, 0.67], # <-- dense vector
+ using="dense",
+ limit=20,
+ ),
+ ],
+ query=models.FusionQuery(fusion=models.Fusion.DB

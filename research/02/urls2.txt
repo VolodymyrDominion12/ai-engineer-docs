@@ -1,0 +1,10 @@
+pricing|https://platform.claude.com/docs/en/docs/about-claude/pricing
+messages-api|https://platform.claude.com/docs/en/api/messages
+thinking|https://platform.claude.com/docs/en/docs/build-with-claude/thinking
+prompt-caching|https://platform.claude.com/docs/en/docs/build-with-claude/prompt-caching
+vision|https://platform.claude.com/docs/en/docs/build-with-claude/vision
+pdf|https://platform.claude.com/docs/en/docs/build-with-claude/pdf-support
+citations|https://platform.claude.com/docs/en/docs/build-with-claude/citations
+batches|https://platform.claude.com/docs/en/docs/build-with-claude/batch-processing
+streaming|https://platform.claude.com/docs/en/docs/build-with-claude/streaming
+token-counting|https://platform.claude.com/docs/en/docs/build-with-claude/token-counting

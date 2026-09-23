@@ -1,0 +1,659 @@
+### SOURCE: https://langfuse.com/pricing
+
+- - - - - - - - - - - - - - - - - - - - - - - - Pricing - Langfuse- - - - - - 
+ Langfuse v4: up to 165× faster · Read moreLangfuse v4 is here: real-time, up to 165× faster · Read more
+ Pricing
+Get started on the Hobby plan for free. No credit card required.
+Langfuse Cloud (we host)Self-hosted (you host)
+Hobby
+Get started, no credit card required. Great for hobby projects and POCs.
+Free
+Sign up
+Trusted by:
+- All platform features (with limits)
+- 50k units / month included
+- 30 days data access
+- 2 users
+- Community support via GitHub
+Unlimited Users
+Core
+For production projects. Longer data access and unlimited users.
+$29/ month
+Sign up
+Discounts: Startups, EDU, OSS
+Trusted by:
+- Everything in Hobby
+- 100k units / month included, additional: $8/100k units. Lower with volume (pricing calculator)
+- 90 days data access
+- Unlimited users
+- In-app support
+Unlimited Users
+Pro
+For scaling projects. Unlimited history, high rate limits, all features.
+$199/ month
+Sign up
+Discounts: Startups, EDU, OSS
+Trusted by:
+- Everything in Core
+- 100k units / month included, additional: $8/100k units. Lower with volume (pricing calculator)
+- 3 years data access
+- Data retention management
+- Unlimited annotation queues
+- High rate limits
+- SOC2 & ISO27001 reports, HIPAA-ready region
+- Prioritized in-app support
++ optional
+Teams Add-on$300/mo
+- Enterprise SSO (e.g. Okta)
+- SSO enforcement
+- Fine-grained RBAC
+- Support via Dedicated Slack / MS Teams Channel
+Enterprise
+For large scale teams. Enterprise-grade support and security.
+$2499/ month
+Talk to sales
+Enterprise FAQ
+Trusted by:
+- Everything in Pro + Teams
+- 100k units / month included, additional: $8/100k units. Lower with volume (pricing calculator)
+- Audit Logs
+- SCIM API
+- Custom rate limits
+- Uptime SLA
+- Support SLA
+- Named lead support engineer
++ optional
+Yearly Commitment
+- Custom Volume Pricing
+- Architecture reviews
+- Billing via AWS Marketplace
+- Billing via Invoice
+- Vendor Onboarding
+Feature comparison
+Hobby
+Get started, no credit card required. Great for hobby projects and POCs.
+LLM Application & Agent Tracing | 
+Traces and Graphs (Agents) | 
+ | 
+Session Tracking (Chats/Threads) | 
+ | 
+User Tracking | 
+ | 
+Token and Cost Tracking | 
+ | 
+Native Frameworks Integrations | 
+ | 
+SDKs (Python, JavaScript) | 
+ | 
+OpenTelemetry (Java, Go, custom) | 
+ | 
+Proxy-based Logging (via LiteLLM) | 
+ | 
+Custom via API | 
+ | 
+Included usage | 50k units
+ | 
+Additional usage | 
+ | 
+Custom Usage Pricing | 
+ | 
+Multi-modal | Free while in beta
+ | 
+Access to historical data | 30 days
+ | 
+Ingestion throughput | 1,000 requests / min
+ | 
+Langfuse AI | 
+Langfuse Assistant (in-app agent) | 
+ | 
+Langfuse Assistant usage limits | Low
+ | 
+Prompt Management | 
+Prompt Versioning | 
+ | 
+Prompt Fetching | Unlimited
+ | 
+Prompt Release Management | 
+ | 
+Prompt Composability | 
+ | 
+Prompt Caching (server and client) | 
+ | 
+Playground | 
+ | 
+Prompt Experiments | 
+ | 
+Webhooks & Slack | 
+ | 
+Protected Deployment Labels | 
+ | 
+Evaluation (online and offline) | 
+Datasets | 
+ | 
+Experiments via SDK | 
+ | 
+Experiments via UI | 
+ | 
+Evaluation Scores (custom) | 
+ | 
+User Feedback Tracking | 
+ | 
+External Evaluation Pipelines | 
+ | 
+LLM-as-judge evaluators | 
+ | 
+Human Annotation | 
+ | 
+Human Annotation Queues | 1 queue
+ | 
+Metrics | 
+Custom Dashboards | 
+ | 
+Alerts | 2 alerts
+ | 
+Collaboration | 
+Projects | Unlimited
+ | 
+Users | 2
+ | 
+API | 
+Extensive Public API | 
+ | 
+Rate limit (General API) | 30 requests / min
+ | 
+Rate limit (Datasets API) | 100 requests / min
+ | 
+Rate limit (Metrics API v2) | 100 requests / day
+ | 
+Rate limit (Observations API v2) | 30 requests / min
+ | 
+Rate limit (Legacy Metrics API) | 100 requests / day
+ | 
+SLA | 
+ | 
+Exports | 
+Batch Export via UI | 
+ | 
+PostHog Integration | 
+ | 
+Mixpanel Integration | 
+ | 
+Scheduled Batch Export to Blob Storage | 
+ | 
+Support | 
+Ask AI | 
+ | 
+Community (GitHub) | 
+ | 
+In-app support | 
+ | 
+Private Slack / MS Teams channel | 
+ | 
+Named Lead Support Engineer | 
+ | 
+Onboarding & Architectural guidance | 
+ | 
+Response time SLO | n/a
+ | 
+Support SLA | 
+ | 
+Security | 
+Data region | US, EU, or JP
+ | 
+AWS PrivateLink | 
+ | 
+Sign in with Google, AzureAD, GitHub | 
+ | 
+Organization-level RBAC | 
+ | 
+Enterprise SSO (e.g. Okta, AzureAD/EntraID) | 
+ | 
+SSO enforcement | 
+ | 
+Client-side data masking | 
+ | 
+Project-level RBAC | 
+ | 
+Data retention management | 
+ | 
+SCIM API for automated user provisioning | 
+ | 
+Audit Logs | 
+ | 
+Billing | 
+Subscription management | 
+ | 
+Payment methods | 
+ | 
+Contract duration | 
+ | 
+Billing via AWS Marketplace | 
+ | 
+Compliance | 
+Contracts | Standard T&Cs & DPA
+ | 
+Data processing agreement (GDPR) | 
+ | 
+SOC2 Type II & ISO27001 reports | 
+ | 
+HIPAA-ready region | 
+ | 
+InfoSec/legal reviews | 
+ | 
+Core
+For production projects. Longer data access and unlimited users.
+LLM Application & Agent Tracing | 
+Traces and Graphs (Agents) | 
+ | 
+Session Tracking (Chats/Threads) | 
+ | 
+User Tracking | 
+ | 
+Token and Cost Tracking | 
+ | 
+Native Frameworks Integrations | 
+ | 
+SDKs (Python, JavaScript) | 
+ | 
+OpenTelemetry (Java, Go, custom) | 
+ | 
+Proxy-based Logging (via LiteLLM) | 
+ | 
+Custom via API | 
+ | 
+Included usage | 100k units
+ | 
+Additional usage | $8/100k units. Lower with volume (pricing calculator)
+ | 
+Custom Usage Pricing | 
+ | 
+Multi-modal | Free while in beta
+ | 
+Access to historical data | 90 days
+ | 
+Ingestion throughput | 4,000 requests / min
+ | 
+Langfuse AI | 
+Langfuse Assistant (in-app agent) | 
+ | 
+Langfuse Assistant usage limits | Medium
+ | 
+Prompt Management | 
+Prompt Versioning | 
+ | 
+Prompt Fetching | Unlimited
+ | 
+Prompt Release Management | 
+ | 
+Prompt Composability | 
+ | 
+Prompt Caching (server and client) | 
+ | 
+Playground | 
+ | 
+Prompt Experiments | 
+ | 
+Webhooks & Slack | 
+ | 
+Protected Deployment Labels | 
+ | 
+Evaluation (online and offline) | 
+Datasets | 
+ | 
+Experiments via SDK | 
+ | 
+Experiments via UI | 
+ | 
+Evaluation Scores (custom) | 
+ | 
+User Feedback Tracking | 
+ | 
+External Evaluation Pipelines | 
+ | 
+LLM-as-judge evaluators | 
+ | 
+Human Annotation | 
+ | 
+Human Annotation Queues | 3 queues
+ | 
+Metrics | 
+Custom Dashboards | 
+ | 
+Alerts | 20 alerts
+ | 
+Collaboration | 
+Projects | Unlimited
+ | 
+Users | Unlimited
+ | 
+API | 
+Extensive Public API | 
+ | 
+Rate limit (General API) | 100 requests / min
+ | 
+Rate limit (Datasets API) | 200 requests / min
+ | 
+Rate limit (Metrics API v2) | 100 requests / hour
+ | 
+Rate limit (Observations API v2) | 100 requests / min
+ | 
+Rate limit (Legacy Metrics API) | 2,000 requests / day
+ | 
+SLA | 
+ | 
+Exports | 
+Batch Export via UI | 
+ | 
+PostHog Integration | 
+ | 
+Mixpanel Integration | 
+ | 
+Scheduled Batch Export to Blob Storage | 
+ | 
+Support | 
+Ask AI | 
+ | 
+Community (GitHub) | 
+ | 
+In-app support | 
+ | 
+Private Slack / MS Teams channel | 
+ | 
+Named Lead Support Engineer | 
+ | 
+Onboarding & Architectural guidance | 
+ | 
+Response time SLO | 48h
+ | 
+Support SLA | 
+ | 
+Security | 
+Data region | US, EU, or JP
+ | 
+AWS PrivateLink | 
+ | 
+Sign in with Google, AzureAD, GitHub | 
+ | 
+Organization-level RBAC | 
+ | 
+Enterprise SSO (e.g. Okta, AzureAD/EntraID) | 
+ | 
+SSO enforcement | 
+ | 
+Client-side data masking | 
+ | 
+Project-level RBAC | 
+ | 
+Data retention management | 
+ | 
+SCIM API for automated user provisioning | 
+ | 
+Audit Logs | 
+ | 
+Billing | 
+Subscription management | Self-serve
+ | 
+Payment methods | Credit card
+ | 
+Contract duration | Monthly
+ | 
+Billing via AWS Marketplace | 
+ | 
+Compliance | 
+Contracts | Standard T&Cs & DPA
+ | 
+Data processing agreement (GDPR) | 
+ | 
+SOC2 Type II & ISO27001 reports | 
+ | 
+HIPAA-ready region | 
+ | 
+InfoSec/legal reviews | 
+ | 
+Pro
+For scaling projects. Unlimited history, high rate limits, all features.
+LLM Application & Agent Tracing | 
+Traces and Graphs (Agents) | 
+ | 
+Session Tracking (Chats/Threads) | 
+ | 
+User Tracking | 
+ | 
+Token and Cost Tracking | 
+ | 
+Native Frameworks Integrations | 
+ | 
+SDKs (Python, JavaScript) | 
+ | 
+OpenTelemetry (Java, Go, custom) | 
+ | 
+Proxy-based Logging (via LiteLLM) | 
+ | 
+Custom via API | 
+ | 
+Included usage | 100k units
+ | 
+Additional usage | $8/100k units. Lower with volume (pricing calculator)
+ | 
+Custom Usage Pricing | 
+ | 
+Multi-modal | Free while in beta
+ | 
+Access to historical data | 3 years
+ | 
+Ingestion throughput | 20,000 requests / min
+ | 
+Langfuse AI | 
+Langfuse Assistant (in-app agent) | 
+ | 
+Langfuse Assistant usage limits | High
+ | 
+Prompt Management | 
+Prompt Versioning | 
+ | 
+Prompt Fetching | Unlimited
+ | 
+Prompt Release Management | 
+ | 
+Prompt Composability | 
+ | 
+Prompt Caching (server and client) | 
+ | 
+Playground | 
+ | 
+Prompt Experiments | 
+ | 
+Webhooks & Slack | 
+ | 
+Protected Deployment Labels | Teams add-on 
+ | 
+Evaluation (online and offline) | 
+Datasets | 
+ | 
+Experiments via SDK | 
+ | 
+Experiments via UI | 
+ | 
+Evaluation Scores (custom) | 
+ | 
+User Feedback Tracking | 
+ | 
+External Evaluation Pipelines | 
+ | 
+LLM-as-judge evaluators | 
+ | 
+Human Annotation | 
+ | 
+Human Annotation Queues | 
+ | 
+Metrics | 
+Custom Dashboards | 
+ | 
+Alerts | 50 alerts
+ | 
+Collaboration | 
+Projects | Unlimited
+ | 
+Users | Unlimited
+ | 
+API | 
+Extensive Public API | 
+ | 
+Rate limit (General API) | 1,000 requests / min
+ | 
+Rate limit (Datasets API) | 1,000 requests / min
+ | 
+Rate limit (Metrics API v2) | 500 requests / hour
+ | 
+Rate limit (Observations API v2) | 1,000 requests / min
+ | 
+Rate limit (Legacy Metrics API) | 2,000 requests / day
+ | 
+SLA | 
+ | 
+Exports | 
+Batch Export via UI | 
+ | 
+PostHog Integration | 
+ | 
+Mixpanel Integration | 
+ | 
+Scheduled Batch Export to Blob Storage | Teams add-on 
+ | 
+Support | 
+Ask AI | 
+ | 
+Community (GitHub) | 
+ | 
+In-app support | 
+ | 
+Private Slack / MS Teams channel | Teams add-on 
+ | 
+Named Lead Support Engineer | 
+ | 
+Onboarding & Architectural guidance | 
+ | 
+Response time SLO | 48h, Teams add-on: 24h 
+ | 
+Support SLA | 
+ | 
+Security | 
+Data region | US, EU, JP, or HIPAA
+ | 
+AWS PrivateLink | 
+ | 
+Sign in with Google, AzureAD, GitHub | 
+ | 
+Organization-level RBAC | 
+ | 
+Enterprise SSO (e.g. Okta, AzureAD/EntraID) | Teams add-on 
+ | 
+SSO enforcement | Teams add-on 
+ | 
+Client-side data masking | 
+ | 
+Project-level RBAC | Teams add-on 
+ | 
+Data retention management | 
+ | 
+SCIM API for automated user provisioning | 
+ | 
+Audit Logs | 
+ | 
+Billing | 
+Subscription management | Self-serve
+ | 
+Payment methods | Credit card
+ | 
+Contract duration | Monthly
+ | 
+Billing via AWS Marketplace | 
+ | 
+Compliance | 
+Contracts | Standard T&Cs & DPA
+ | 
+Data processing agreement (GDPR) | 
+ | 
+SOC2 Type II & ISO27001 reports | 
+ | 
+HIPAA-ready region | 
+ | 
+InfoSec/legal reviews | 
+ | 
+Enterprise
+For large scale teams. Enterprise-grade support and security.
+LLM Application & Agent Tracing | 
+Traces and Graphs (Agents) | 
+ | 
+Session Tracking (Chats/Threads) | 
+ | 
+User Tracking | 
+ | 
+Token and Cost Tracking | 
+ | 
+Native Frameworks Integrations | 
+ | 
+SDKs (Python, JavaScript) | 
+ | 
+OpenTelemetry (Java, Go, custom) | 
+ | 
+Proxy-based Logging (via LiteLLM) | 
+ | 
+Custom via API | 
+ | 
+Included usage | 100k units
+ | 
+Additional usage | $8/100k units. Lower with volume (pricing calculator)
+ | 
+Custom Usage Pricing | Available with Yearly Commitment 
+ | 
+Multi-modal | Free while in beta
+ | 
+Access to historical data | 3 years
+ | 
+Ingestion throughput | Custom
+ | 
+Langfuse AI | 
+Langfuse Assistant (in-app agent) | 
+ | 
+Langfuse Assistant usage limits | High
+ | 
+Prompt Management | 
+Prompt Versioning | 
+ | 
+Prompt Fetching | Unlimited
+ | 
+Prompt Release Management | 
+ | 
+Prompt Composability | 
+ | 
+Prompt Caching (server and client) | 
+ | 
+Playground | 
+ | 
+Prompt Experiments | 
+ | 
+Webhooks & Slack | 
+ | 
+Protected Deployment Labels | 
+ | 
+Evaluation (online and offline) | 
+Datasets | 
+ | 
+Experiments via SDK | 
+ | 
+Experiments via UI | 
+ | 
+Evaluation Scores (custom) | 
+ | 
+User Feedback Tracking | 
+ | 
+External Evaluation Pipelines | 
+ | 
+LLM-as-judge evaluators | 
+ | 
+Human Annotation | 
+ | 
+Human Annotation Queues | 
+ | 
+Metri

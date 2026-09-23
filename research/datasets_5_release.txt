@@ -1,0 +1,280 @@
+### SOURCE: https://github.com/huggingface/datasets/releases/tag/5.0.0
+
+- 
+ - 
+ - 
+ - 
+ - 
+ - 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+ - - - - - - - - - - - - - - - - - - 
+ - 
+ - 
+ - 
+ - 
+ - 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+ - 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+ Release 5.0.0 · huggingface/datasets · GitHub
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ Skip to content
+ - 
+- 
+- 
+- 
+ - 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+ Navigation Menu
+ Sign in Appearance settings
+ Search/
+Sign in
+Sign up Appearance settings
+ You signed in with another tab or window. Reload to refresh your session.
+ You signed out in another tab or window. Reload to refresh your session.
+ You switched accounts on another tab or window. Reload to refresh your session.
+Dismiss alert
+ {{ message }}
+ huggingface
+ /
+ datasets
+ Public
+ - 
+ Notifications
+ You must be signed in to change notification settings
+ - 
+ Fork
+ 3.4k
+ - 
+ Star
+ 22k
+ 5.0.0
+ Compare
+ Choose a tag to compare
+ Sorry, something went wrong.
+ Filter
+ Loading
+ - 
+ Sorry, something went wrong.
+ Uh oh!
+ There was an error while loading. Please reload this page.
+ No results found
+ View all tags
+ lhoestq
+ released this
+ 05 Jun 13:29
+ ·
+ 68 commits
+ to main
+ since this release
+ 5.0.0
+ 68ac1a9 
+ This commit was created on GitHub.com and signed with GitHub’s verified signature.
+ GPG key ID: B5690EEEBB952194
+ Verified
+ Learn about vigilant mode.
+ Datasets Features
+Agent traces
+- 
+Parse Agent traces messages for SFT using teich by @lhoestq in #8232
+- Agent traces from claude_code/pi/codex and others can now be loaded with load_dataset
+- Using the teich library (new optional dependency), traces are parsed to messages to enable training on traces using e.g. trl
+- Load the data:
+```
+>>> from datasets import load_dataset
+>>> ds = load_dataset("lhoestq/agent-traces-example", split="train")
+>>> ds[0]["messages"]
+[{'role': 'user', 'content': 'Download a random dataset from Hugging Face, use DuckDB to inspect it, and come back with a short report about it. Be concise and include: dataset name, what files/format you found, row count or rough size if you can determine it,...'
+ ...]
+```
+- Train on agent traces:
+```
+trl sft --dataset-name lhoestq/agent-traces-example ...
+```
+- find all the Agent traces datasets on HF here: https://huggingface.co/datasets?format=format:agent-traces&sort=trending
+Next-level shuffling in streaming mode
+- 
+Use multiple input shards for shuffle buffer by @lhoestq in #8194
+```
+ds = load_dataset(..., streaming=True)
+ds = ds.shuffle(seed=42)
+# or configure local buffer shuffling manually, default is:
+ds = ds.shuffle(seed=42, buffer_size=1000, max_buffer_input_shards=10)
+```
+before👎:
+after✨:
+toy example comparison
+```
+from datasets import IterableDataset
+ds = IterableDataset.from_dict({"i": range(123_456_789)}, num_shards=1024)
+ds = ds.shuffle(seed=42)
+print("Cold start ids:")
+print(list(ds.take(10)["i"]))
+print("Nominal regime ids:")
+print(list(ds.skip(10_000).take(10)["i"]))
+```
+before👎:
+```
+Cold start ids:
+[6148853, 6149537, 6149418, 6149202, 6149197, 6149622, 6148849, 6149461, 6148965, 6148858]
+Nominal regime ids:
+[6149537, 6149418, 6149202, 6149197, 6149622, 6148849, 6149461, 6148965, 6148858, 6149290]
+```
+after✨:
+```
+Cold start ids:
+[7836668, 9283505, 95847927, 482299, 9283471, 482341, 112003312, 59920157, 43764666, 95847871]
+Nominal regime ids:
+[9283505, 95847927, 482299, 9283471, 482341, 112003312, 59920157, 43764666, 95847871, 16758448]
+```
+Note: ds.state_dict() and ds.load_state_dict() are still supported for this improved shuffling :) enabling dataset checkpointing
+Note 2: it uses threads to fetch the first examples in parallel from the input shards
+Note 3: This is a BREAKING CHANGE: the default shuffling mechanism now uses multiple input shards. You can get the old mechanism by passing max_buffer_input_shards=1 to IterableDataset.shuffle()
+New batching features for robotics datasets
+- 
+Add batch(by_column=...) by @lhoestq in #8172
+```
+from datasets import Dataset
+ds = Dataset.from_dict({"episode": [0] * 10 + [1] * 10, "frame": list(range(10)) * 2})
+# ds = ds.to_iterable_dataset()
+ds = ds.batch(by_column="episode")
+for x in ds:
+ print(x)
+# {'episode': [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], 'frame': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
+# {'episode': [1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 'frame': [0, 1, 2, 3, 4, 5, 6, 7, 8, 9]}
+```
+New supported formats
+- Add Apache Iceberg format support by @frankliee in #8148
+- feat: add TsFile (Apache IoTDB) packaged builder with per-device wide format by @JackieTien97 in #8160
+- feat: add 3D mesh support and MeshFolder builder by @Vinay-Umrethe in #8055
+- Add .conll / .conllu dataset format loader (CoNLL-2003 / 2000 / U) by @CrypticCortex in #8219
+Other improvements and bug fixes
+- Pass library_name/version to HfApi in dataset push and delete paths by @davanstrien in #8161
+- Fix storage_options lookup for streaming Lance datasets by @ericjaebeom in #8166
+- add agent trace prompt, sent_at, count fields by @cfahlgren1 in #8163
+- fix: add num_proc argument to Dataset.to_sql by @EricSaikali in #7791
+- Support fsspec 2026.4.0 by @lhoestq in #8175
+- Fix Parquet streaming hangs at the end of script by @lhoestq in #8176
+- ClassLabel docs: Correct value for unknown labels by @l-uuz in #7645
+- fix parquet reshard by @lhoestq in #8193
+- Fix parquet columns arg by @lhoestq in #8210
+- update readme by @lhoestq in #8208
+- update single seg repos in ci by @lhoestq in #8213
+- Fix single lance file form pylance 7.0 by @lhoestq in #8225
+- fix(map): fix progress bar exceeding total when load_from_cache_file=False by @Nitin-Rajasekar in #8170
+- fix: embed_external_files=True for mesh support by @Vinay-Umrethe in #8224
+- Fix iterable skip over full Arrow blocks by @my17th2 in #8236
+- Keep None as a real null in Json() columns instead of the string "null" by @adityasingh2400 in #8231
+- Support composed splits in streaming datasets by @lanarkite99 in #8220
+New Contributors
+- @ericjaebeom made their first contribution in #8166
+- @EricSaikali made their first contribution in #7791
+- @l-uuz made their first contribution in #7645
+- @CrypticCortex made their first contribution in #8219
+- @frankliee made their first contribution in #8148
+- @Vinay-Umrethe made their first contribution in #8055
+- @Nitin-Rajasekar made their first contribution in #8170
+- @JackieTien97 made their first contribution in #8160
+- @my17th2 made their first contribution in #8236
+- @adityasingh2400 made their first contribution in #8231
+- @lanarkite99 made their first contribution in #8220
+Full Changelog: 4.8.5...5.0.0
+ Contributors
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ - 
+ davanstrien, frankliee, and 12 other contributors
+ Assets
+ 2
+ Loading
+ Uh oh!
+ There was an error while loading. Please reload this page.
+ -->
+ 👍
+ 1
+ cynricfu reacted with thumbs up emoji
+ All reactions
+ - 
+ 👍
+ 1 reaction
+ 1 person reacted
+ Footer
+ © 2026 GitHub, Inc.
+ You can’t perform that action at this time.

@@ -1,0 +1,507 @@
+### SOURCE: https://langfuse.com/docs/prompt-management/get-started
+
+- - - - - - - - - - - - - Get Started with Prompt Management - Langfuse- - - - - - - 
+ Langfuse v4: up to 165× faster · Read moreLangfuse v4 is here: real-time, up to 165× faster · Read more
+ Docs Get Started
+ OverviewExample ProjectAsk AIGet Started
+Start TracingUse Prompt ManagementSet up EvalsProducts
+Observability 
+Prompt Management OverviewGet StartedConceptsFeatures 
+Troubleshooting and FAQ
+Evaluation 
+Platform
+Metrics 
+API & Data Platform 
+AssistantAdministration 
+Security & GuardrailsVersions & CompatibilityMore
+GlossaryRoadmapLangfuse v4 is liveDocs MCP ServerSDK & API References 
+ Security & Compliance ↗ Support ↗
+ Get Started 
+Docs Prompt Management Get Started
+Copy page 
+Get Started with Prompt Management 
+This guide walks you through creating and using a prompt with Langfuse. If you're looking to understand what prompt management is and why it matters, check out the Prompt Management Overview first. For details on how prompts are structured in Langfuse and how it works in the background, see Core Concepts.
+Agentic installation 
+Install the Langfuse Agent Skill to let your coding agent access all Langfuse features.
+Ask your coding agentCursor pluginManual installation
+Ask your coding agent to install the skill by pointing to the GitHub repository and instruct it to migrate your prompts.
+Agent instruction 
+```
+Install the Langfuse Agent Skill from github.com/langfuse/skills
+and use it to migrate the prompts in this codebase to Langfuse.
+```
+Langfuse has a Cursor Plugin that includes the skill automatically.
+Install Plugin in Cursor
+Then prompt your agent:
+Agent instruction 
+```
+Migrate the prompts in this codebase to Langfuse.
+```
+Install via npm (skills CLI):
+```
+npx skills add langfuse/skills --skill "langfuse"
+```
+If you want to target a specific agent directly:
+```
+npx skills add langfuse/skills --skill "langfuse" --agent "<agent-id>"
+```
+Alternatively you can manually clone the skill+
+- Clone repo somewhere stable
+```
+git clone https://github.com/langfuse/skills.git /path/to/langfuse-skills
+```
+- Make sure your agent's skills dir exists
+```
+mkdir -p /path/to/<agent-skill-root>/skills
+```
+- Symlink the skill folder
+```
+ln -s /path/to/langfuse-skills/skills/langfuse /path/to/<agent-skill-root>/skills/langfuse
+```
+Then prompt your agent:
+Agent instruction 
+```
+Migrate the prompts in this codebase to Langfuse.
+```
+Manual installation 
+This guide helps you get started with Langfuse Prompt Management manually.
+Get API keys 
+- Create Langfuse account or self-host Langfuse.
+- Create new API credentials in the project settings.
+Create a prompt 
+Langfuse UIPython SDKJS/TS SDKAPIMigrate from existing code
+Use the Langfuse UI to create a new prompt or update an existing one. You'll need to select the prompt type, you can't change this afterwards.
+```
+pip install langfuse
+```
+Add your Langfuse credentials as environment variables so the SDK knows which project to create the prompt in.
+.env 
+```
+LANGFUSE_SECRET_KEY = "sk-lf-..."
+LANGFUSE_PUBLIC_KEY = "pk-lf-..."
+LANGFUSE_BASE_URL = "https://cloud.langfuse.com" # 🇪🇺 EU region
+# Other Langfuse data regions include 🇺🇸 US: https://us.cloud.langfuse.com, 🇯🇵 Japan: https://jp.cloud.langfuse.com and ⚕️ HIPAA: https://hipaa.cloud.langfuse.com
+```
+Use the Python SDK to create a new prompt or update an existing one.
+```
+# Create a text prompt
+langfuse.create_prompt(
+ name="movie-critic",
+ type="text",
+ prompt="As a {{criticlevel}} movie critic, do you like {{movie}}?",
+ labels=["production"] # optionally, directly promote to production
+)
+# Create a chat prompt
+langfuse.create_prompt(
+ name="movie-critic-chat",
+ type="chat",
+ prompt=[
+ { "role": "system", "content": "You are an {{criticlevel}} movie critic" },
+ { "role": "user", "content": "Do you like {{movie}}?" },
+ ],
+ labels=["production"] # optionally, directly promote to production
+)
+```
+If you already have a prompt with the same name, the prompt will be added as a new version.
+```
+npm i @langfuse/client
+```
+Add your Langfuse credentials as environment variables so the SDK knows which project to create the prompt in.
+.env 
+```
+LANGFUSE_SECRET_KEY = "sk-lf-..."
+LANGFUSE_PUBLIC_KEY = "pk-lf-..."
+LANGFUSE_BASE_URL = "https://cloud.langfuse.com" # 🇪🇺 EU region
+# Other Langfuse data regions include 🇺🇸 US: https://us.cloud.langfuse.com, 🇯🇵 Japan: https://jp.cloud.langfuse.com and ⚕️ HIPAA: https://hipaa.cloud.langfuse.com
+```
+```
+import { LangfuseClient } from "@langfuse/client";
+const langfuse = new LangfuseClient();
+```
+Use the JS/TS SDK to create a new prompt or update an existing one.
+```
+// Create a text prompt
+await langfuse.prompt.create({
+ name: "movie-critic",
+ type: "text",
+ prompt: "As a {{criticlevel}} critic, do you like {{movie}}?",
+ labels: ["production"] // optionally, directly promote to production
+});
+// Create a chat prompt
+await langfuse.prompt.create({
+ name: "movie-critic-chat",
+ type: "chat",
+ prompt: [
+ { role: "system", content: "You are an {{criticlevel}} movie critic" },
+ { role: "user", content: "Do you like {{movie}}?" },
+ ],
+ labels: ["production"] // optionally, directly promote to production
+});
+```
+If you already have a prompt with the same name, the prompt will be added as a new version.
+Use the Public API to create a new prompt or update an existing one.
+```
+curl -X POST "https://cloud.langfuse.com/api/public/v2/prompts" \
+ -u "your-public-key:your-secret-key" \
+ -H "Content-Type: application/json" \
+ -d '{
+ "type": "chat",
+ "name": "movie-critic",
+ "prompt": [
+ { "role": "system", "content": "You are an {{criticlevel}} movie critic" },
+ { "role": "user", "content": "Do you like {{movie}}?" }
+ ]
+ }'
+```
+API Reference
+If you have prompts in your existing codebase, you can migrate them to Langfuse programmatically.
+Using the Langfuse Skill
+- Install the Langfuse Skill:
+```
+# Cursor plugin
+/add-plugin langfuse
+# skills CLI
+npx skills add langfuse/skills --skill "langfuse"
+# Manual: clone and symlink
+git clone https://github.com/langfuse/skills.git /path/to/langfuse-skills
+ln -s /path/to/langfuse-skills/skills/langfuse ~/.skills/langfuse
+```
+- Ask the agent to migrate your prompts:
+```
+Migrate the hardcoded prompts in this codebase to Langfuse prompt management.
+```
+Using the API
+You can write a script that reads your existing prompts and creates them in Langfuse using the Public API. This is ideal for bulk migrations or CI/CD integration.
+API Reference
+Things to look out for
+- Langfuse uses a specific syntax for variables, prompt references, and message placeholders. Make sure to update your prompts to use the correct format, if you want to use Langfuse's dynamic rendering capabilities.
+Use the prompt in your code 
+At runtime, you can fetch the prompt from Langfuse. We recommend using the production label to fetch the version intentionally chosen for production. Learn more about control (versions/labels) here.
+Python SDKJS/TS SDKAPIOpenAI SDK (Python)OpenAI SDK (JS/TS)Langchain (Python)Langchain (JS)Vercel AI SDK
+```
+from langfuse import get_client
+# Initialize Langfuse client
+langfuse = get_client()
+```
+Below are code examples for both a text type prompt and a chat type prompt. Learn more about prompt types here.
+Text prompt
+```
+# By default, the production version is fetched.
+prompt = langfuse.get_prompt("movie-critic")
+# Insert variables into prompt template
+compiled_prompt = prompt.compile(criticlevel="expert", movie="Dune 2")
+# -> "As an expert movie critic, do you like Dune 2?"
+```
+Chat prompt
+```
+# By default, the production version of a chat prompt is fetched.
+chat_prompt = langfuse.get_prompt("movie-critic-chat", type="chat") # type arg infers the prompt type (default is 'text')
+# Insert variables into chat prompt template
+compiled_chat_prompt = chat_prompt.compile(criticlevel="expert", movie="Dune 2")
+# -> [{"role": "system", "content": "You are an expert movie critic"}, {"role": "user", "content": "Do you like Dune 2?"}]
+```
+```
+import { LangfuseClient } from "@langfuse/client";
+// Initialize the Langfuse client
+const langfuse = new LangfuseClient();
+```
+Below are code examples for both a text type prompt and a chat type prompt. Learn more about prompt types here.
+Text prompt
+```
+// By default, the production version of a text prompt is fetched.
+const prompt = await langfuse.prompt.get("movie-critic");
+// Insert variables into prompt template
+const compiledPrompt = prompt.compile({
+ criticlevel: "expert",
+ movie: "Dune 2",
+});
+// -> "As an expert movie critic, do you like Dune 2?"
+```
+Chat prompt
+```
+// By default, the production version of a chat prompt is fetched.
+const chatPrompt = await langfuse.prompt.get("movie-critic-chat", {
+ type: "chat",
+}); // type option infers the prompt type (default is 'text')
+// Insert variables into chat prompt template
+const compiledChatPrompt = chatPrompt.compile({
+ criticlevel: "expert",
+ movie: "Dune 2",
+});
+// -> [{"role": "system", "content": "You are an expert movie critic"}, {"role": "user", "content": "Do you like Dune 2?"}]
+```
+Use the Public API to fetch a prompt at runtime. By default, the prompt labeled production is returned.
+```
+curl "https://cloud.langfuse.com/api/public/v2/prompts/movie-critic?label=production" \
+ -u "your-public-key:your-secret-key"
+```
+For fetching a specific version instead of a label:
+```
+curl "https://cloud.langfuse.com/api/public/v2/prompts/movie-critic?version=1" \
+ -u "your-public-key:your-secret-key"
+```
+API Reference
+```
+pip install langfuse openai
+```
+```
+import openai
+from langfuse import get_client
+# Initialize Langfuse client
+langfuse = get_client()
+```
+Below are code examples for both a text type prompt and a chat type prompt. Learn more about prompt types here.
+Text prompt
+```
+# By default, the production version of a text prompt is fetched.
+prompt = langfuse.get_prompt("movie-critic")
+# Compile the prompt with variables
+compiled_prompt = prompt.compile(criticlevel="expert", movie="Dune 2")
+# Use with OpenAI - prompt is a string
+completion = openai.chat.completions.create(
+ model="gpt-4o",
+ messages=[{"role": "user", "content": compiled_prompt}]
+)
+```
+Chat prompt
+```
+# By default, the production version of a chat prompt is fetched.
+chat_prompt = langfuse.get_prompt("movie-critic-chat", type="chat")
+# Compile the prompt with variables - returns a list of message dicts
+compiled_chat_prompt = chat_prompt.compile(criticlevel="expert", movie="Dune 2")
+# Use with OpenAI - prompt is a list of messages
+completion = openai.chat.completions.create(
+ model="gpt-4o",
+ messages=compiled_chat_prompt
+)
+```
+Example notebook
+Example Cookbook
+```
+npm install @langfuse/openai openai
+```
+```
+import { observeOpenAI } from "@langfuse/openai";
+import { LangfuseClient } from "@langfuse/client";
+import OpenAI from "openai";
+// Initialize Langfuse client
+const langfuse = new LangfuseClient();
+// Wrap OpenAI client
+const openai = observeOpenAI(new OpenAI());
+```
+Below are code examples for both a text type prompt and a chat type prompt. Learn more about prompt types here.
+Text prompt
+```
+// By default, the production version of a text prompt is fetched.
+const prompt = await langfuse.prompt.get("movie-critic", {
+ type: "text",
+});
+// Compile the prompt with variables
+const compiledPrompt = prompt.compile({
+ criticlevel: "expert",
+ movie: "Dune 2",
+});
+// Use with OpenAI - prompt is a string
+const completion = await openai.chat.completions.create({
+ model: "gpt-4o",
+ messages: [{ role: "user", content: compiledPrompt }],
+});
+```
+Chat prompt
+```
+// By default, the production version of a chat prompt is fetched.
+const chatPrompt = await langfuse.prompt.get("movie-critic-chat", {
+ type: "chat",
+});
+// Compile the prompt with variables - returns an array of messages
+const compiledChatPrompt = chatPrompt.compile({
+ criticlevel: "expert",
+ movie: "Dune 2",
+});
+// Use with OpenAI - prompt is an array of messages
+const completion = await openai.chat.completions.create({
+ model: "gpt-4o",
+ messages: compiledChatPrompt,
+});
+```
+```
+from langfuse import Langfuse
+from langchain_core.prompts import ChatPromptTemplate
+# Initialize Langfuse client
+langfuse = Langfuse()
+```
+Below are code examples for both a text type prompt and a chat type prompt. Learn more about prompt types here.
+These examples contain variables. As Langfuse and Langchain process input variables of prompt templates differently ({} instead of {{}}), we provide the prompt.get_langchain_prompt() method to transform the Langfuse prompt into a string that can be used with Langchain's PromptTemplate. You can pass optional keyword arguments to prompt.get_langchain_prompt(**kwargs) in order to precompile some variables and handle the others with Langchain's PromptTemplate.
+Text prompt
+```
+# By default, the production version of a text prompt is fetched.
+langfuse_prompt = langfuse.get_prompt("movie-critic")
+# Example using ChatPromptTemplate
+langchain_prompt = ChatPromptTemplate.from_template(langfuse_prompt.get_langchain_prompt())
+# Example using ChatPromptTemplate with pre-compiled variables.
+langchain_prompt = ChatPromptTemplate.from_template(langfuse_prompt.get_langchain_prompt(strictness='tough'))
+```
+Chat prompt
+```
+# By default, the production version of a chat prompt is fetched.
+langfuse_prompt = langfuse.get_prompt("movie-critic-chat", type="chat")
+# Create a Langchain ChatPromptTemplate from the Langfuse prompt chat messages
+langchain_prompt = ChatPromptTemplate.from_messages(langfuse_prompt.get_langchain_prompt())
+```
+Example notebook
+Example Cookbook
+```
+import { LangfuseClient } from "@langfuse/client";
+import { ChatPromptTemplate } from "@langchain/core/prompts";
+const langfuse = new LangfuseClient();
+```
+Below are code examples for both a text type prompt and a chat type prompt. Learn more about prompt types here.
+These examples contain variables. As Langfuse and Langchain process input variables of prompt templates differently ({} instead of {{}}), we provide the prompt.get_langchain_prompt() method to transform the Langfuse prompt into a string that can be used with Langchain's PromptTemplate. You can pass optional keyword arguments to prompt.get_langchain_prompt(**kwargs) in order to precompile some variables and handle the others with Langchain's PromptTemplate.
+Text prompt
+```
+// Get current `production` version
+const langfusePrompt = await langfuse.prompt.get("movie-critic");
+// Example using ChatPromptTemplate
+const promptTemplate = PromptTemplate.fromTemplate(
+ langfusePrompt.getLangchainPrompt()
+);
+```
+Chat prompt
+```
+// Get current `production` version of a chat prompt
+const langfusePrompt = await langfuse.prompt.get(
+ "movie-critic-chat",
+ { type: "chat" }
+);
+// Example using ChatPromptTemplate
+const promptTemplate = ChatPromptTemplate.fromMessages(
+ langfusePrompt.getLangchainPrompt().map((msg) => [msg.role, msg.content])
+);
+```
+Example notebook
+Example Cookbook.
+Use Langfuse Prompt Management with the Vercel AI SDK.
+```
+npm install @langfuse/client ai
+```
+```
+import { generateText } from "ai";
+import { openai } from "@ai-sdk/openai";
+import { LangfuseClient } from "@langfuse/client";
+// Initialize Langfuse client
+const langfuse = new LangfuseClient();
+```
+Below are code examples for both a text type prompt and a chat type prompt. Learn more about prompt types here.
+Text prompt
+```
+// By default, the production version of a text prompt is fetched.
+const prompt = await langfuse.prompt.get("movie-critic", {
+ type: "text",
+});
+// Compile the prompt with variables
+const compiledPrompt = prompt.compile({
+ criticlevel: "expert",
+ movie: "Dune 2",
+});
+// Use with Vercel AI SDK
+const result = await generateText({
+ model: openai("gpt-4o"),
+ prompt: compiledPrompt,
+ experimental_telemetry: {
+ isEnabled: true,
+ },
+});
+```
+Chat prompt
+```
+// By default, the production version of a chat prompt is fetched.
+const chatPrompt = await langfuse.prompt.get("movie-critic-chat", {
+ type: "chat",
+});
+// Compile the prompt with variables - returns an array of messages
+const compiledChatPrompt = chatPrompt.compile({
+ criticlevel: "expert",
+ movie: "Dune 2",
+});
+// Use with Vercel AI SDK
+const result = await generateText({
+ model: openai("gpt-4o"),
+ messages: compiledChatPrompt,
+ experimental_telemetry: {
+ isEnabled: true,
+ },
+});
+```
+Not seeing your latest version? This might be because of the caching behavior. See prompt caching for more details.
+ Prompt Management is not on the critical path of your application. The SDKs cache prompts client-side, so after the first fetch they are served from memory with no extra latency. If Langfuse goes down, your application continues to use the cached prompt.
+If you need 100% availability even when a new instance starts with an empty cache, see guaranteed availability.
+Not seeing what you expected? 
+- I'm not seeing the latest version of my prompt. Why?
+Next steps 
+Now that you've used your first prompt, here are a few things we recommend next to make the most of Langfuse Prompt Management:
+- Link prompts to traces to analyze performance by prompt version
+- Improve prompts with experiments to test prompt versions on a dataset
+- Use version control and labels to manage deployments across environments
+Looking for something specific? Take a look under Features for guides on specific topics.
+Was this page helpful? Good
+ Bad
+ Support
+Last updated on 
+ PreviousOverview
+NextConcepts 
+Product
+- Observability
+- Prompt Management
+- Evaluations
+- Metrics
+- Langfuse for Agents
+- Chat agents
+- Coding agents
+- Workflow automation
+- Playground
+- Pricing
+- Enterprise
+Developers
+- Documentation
+- Self-Hosting
+- SDKs
+- Integrations
+- API Reference
+- Status
+- Talk to Us
+Resources
+- Blog
+- Changelog
+- Events
+- Roadmap
+- Interactive Demo
+- Customers
+- Compare
+- AI Engineering Library
+- Workshop
+- Guides & Cookbooks
+Company
+- About Us
+- Partners
+- Careers
+- Handbook
+- Press
+- Security
+- Support
+- Open source
+Terms
+Privacy
+Imprint
+Cookie Policy
+© 2022–2026 Langfuse GmbH
+ / Finto Technologies Inc.
+Design by Altalogy
+ On this page
+ Get Started with Prompt Management Agentic installation Manual installation Get API keys Create a prompt Use the prompt in your code Not seeing what you expected? Next steps
+Actions
+Give us feedback Edit this page on GitHub
+Contributors
+Last edited
+Marc KlingenLotte VerheydenAkio Nuernberger+4 more
+Ask AIA
+A

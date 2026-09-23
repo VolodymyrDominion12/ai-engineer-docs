@@ -1,0 +1,39 @@
+### SOURCE: https://opentelemetry.io/docs/specs/semconv/gen-ai/gen-ai-agent-spans/
+
+- - - - Moved: Generative AI semantic conventions | OpenTelemetry- - - - For AI agents: a documentation index is available at /llms.txt.
+This page has a Markdown version at /docs/specs/semconv/gen-ai/gen-ai-agent-spans/index.md.
+Ask AI (&#x2318;-K)" class="td-search__input form-control td-search-input" placeholder="Ask AI or search…" aria-label="Ask AI or search…" autocomplete=off>
+ View Markdown
+ View page source
+ Edit this page
+ Create child page
+ Create documentation issue
+ Create project issue
+ Moved: Generative AI semantic conventions
+Important
+GenAI semantic conventions have moved to the
+OpenTelemetry GenAI semantic conventions repository.
+This page has moved and is no longer maintained in this repository.
+ Feedback
+Was this page helpful?
+Yes
+NoThank you. Your feedback is appreciated!
+Please let us know how we can improve this page. Your feedback is appreciated!
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+- 
+©
+2019–present
+OpenTelemetry Authors | Docs CC BY 4.0All Rights Reserved

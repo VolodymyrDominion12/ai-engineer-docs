@@ -1,0 +1,140 @@
+### SOURCE: https://langfuse.com/self-hosting
+
+- - - - - - - - - - - - - Self-host Langfuse (Open Source LLM Observability) - Langfuse- - - - - - - 
+ Langfuse v4: up to 165× faster · Read moreLangfuse v4 is here: real-time, up to 165× faster · Read more
+ Self Hosting
+ OverviewLicense Key (EE)Troubleshooting & FAQConfiguration 
+Deployment 
+Security 
+Administration 
+Upgrade 
+Legacy Docs (v2) 
+ Overview 
+Self Hosting Overview
+Version: v4Copy page 
+Self-host Langfuse 
+Langfuse is open source and can be self-hosted using Docker on your own infrastructure. Some add-on features require a license key.
+When self-hosting Langfuse, you run the same infrastructure that powers Langfuse Cloud. Read "Why Langfuse?" to learn more about why this is important to us.
+Deployment options 
+Best for | Deployment | Responsibility | 
+Fastest start | Langfuse Cloud | Fully managed by the Langfuse team | 
+Local use and testing | Docker Compose | Single VM without high availability, scaling, or backups | 
+Production self-hosting | Kubernetes (Helm), AWS, Azure, GCP, Render (community), or Railway (community) | Your infrastructure | 
+Unless marked as community-supported, these deployment options are maintained and tested by the Langfuse team. Community-supported options are maintained in third-party repositories and supported on a best-effort basis. Report problems via GitHub issues.
+Architecture 
+Langfuse only depends on open source components and can be deployed locally, on cloud infrastructure, or on-premises.
+View architecture componentsLangfuse consists of two application containers, storage components, and an optional LLM API/Gateway.
+- Application Containers
+- Langfuse Web: The main web application serving the Langfuse UI and APIs.
+- Langfuse Worker: A worker that asynchronously processes events.
+- Storage Components:
+- Postgres: The main database for transactional workloads.
+- Clickhouse: High-performance OLAP database which stores traces, observations, and scores.
+- Redis/Valkey cache: A fast in-memory data structure store. Used for queue and cache operations.
+- S3/Blob Store: Object storage to persist all incoming events, multi-modal inputs, and large exports.
+- LLM API / Gateway: Some features depend on an external LLM API or gateway.
+Langfuse can be deployed within a VPC or on-premises in high-security environments.
+Internet access is optional.
+See networking documentation for more details.
+Optimized for performance, reliability, and uptime 
+Langfuse OSS and Enterprise use the same codebase as Langfuse Cloud. Langfuse processes 90B+ observations per month and is trusted by 21 of the Fortune 50. Its Docker images have been pulled 38M+ times.
+How Langfuse is optimized for scale and reliabilitySome of the optimizations include:
+- Queued trace ingestion: All traces are received in batches by the Langfuse Web container and immediately written to S3. Only a reference is persisted in Redis for queueing. Afterwards, the Langfuse Worker will pick up the traces from S3 and ingest them into Clickhouse. This ensures that high spikes in request load do not lead to timeouts or errors constrained by the database.
+- Caching of API keys: API keys are cached in-memory in Redis. Thereby, the database is not hit on every API call and unauthorized requests can be rejected with very low resource usage.
+- Caching of prompts (SDKs and API): Even though prompts are cached client-side by the Langfuse SDKs and only revalidated in the background (docs), they need to be fetched from the Langfuse on first use. Thus, API response times are very important. Prompts are cached in a read-through cache in Redis. Thereby, hot prompts can be fetched from Langfuse without hitting a database.
+- Hyper-optimized ClickHouse schema: Read-heavy analytical operations use a wide, mostly immutable observations table that avoids read-time joins and deduplication while taking advantage of ClickHouse's most performant access patterns. Read how we simplified Langfuse for scale.
+- Multi-modal traces in S3: Multi-modal traces can include large videos or arbitrary files. To enable support for these, they are directly uploaded to S3/Blob Storage from the client SDKs. Learn more about multi-modal traces.
+- Recoverability of events: All incoming tracing and evaluation events are persisted in S3/Blob Storage first. Only after successful processing, the events are written to the database. This ensures that even if the database is temporarily unavailable, the events are not lost and can be processed later.
+- Background migrations: Long-running migrations that are required by an upgrade but not blocking for regular operations are offloaded to a background job. This massively reduces the downtime during an upgrade. Learn more about background migrations.
+Features 
+Langfuse supports many configuration options and self-hosted features.
+For more details, please refer to the configuration guide.
+Authentication & SSO
+Automated Access Provisioning
+Caching
+Code evaluators
+Langfuse Assistant
+Custom Base Path
+Encryption
+Headless Initialization
+Data Masking
+Networking
+Organization Creators (EE)
+Instance Management API (EE)
+Health and Readiness Check
+Observability via OpenTelemetry
+Transactional Emails
+UI Customization (EE)
+Subscribe to updates 
+Release notes are published on GitHub. Langfuse uses tagged semver releases (versioning policy).
+✉️Langfuse OSS updates — get an email when we ship important features and new releases for self-hosted (open source) Langfuse. Self-hosting updates only, no spam.
+Subscribe
+You can also watch the GitHub releases to get notified about new releases:
+If you experience any issues when self-hosting Langfuse, please:
+- Check out Troubleshooting & FAQ page.
+- Use Ask AI to get instant answers to your questions.
+- Ask the maintainers on GitHub Discussions.
+- Create a bug report or feature request on GitHub.
+ Enterprise-grade support is available when self-hosting Langfuse. Learn more on
+our pricing page.
+Was this page helpful? Good
+ Bad
+ Support
+Last updated on 
+NextLicense Key (EE) 
+Product
+- Observability
+- Prompt Management
+- Evaluations
+- Metrics
+- Langfuse for Agents
+- Chat agents
+- Coding agents
+- Workflow automation
+- Playground
+- Pricing
+- Enterprise
+Developers
+- Documentation
+- Self-Hosting
+- SDKs
+- Integrations
+- API Reference
+- Status
+- Talk to Us
+Resources
+- Blog
+- Changelog
+- Events
+- Roadmap
+- Interactive Demo
+- Customers
+- Compare
+- AI Engineering Library
+- Workshop
+- Guides & Cookbooks
+Company
+- About Us
+- Partners
+- Careers
+- Handbook
+- Press
+- Security
+- Support
+- Open source
+Terms
+Privacy
+Imprint
+Cookie Policy
+© 2022–2026 Langfuse GmbH
+ / Finto Technologies Inc.
+Design by Altalogy
+ On this page
+ Self-host Langfuse Deployment options Architecture Optimized for performance, reliability, and uptime Features Subscribe to updates
+Actions
+Give us feedback Edit this page on GitHub
+Contributors
+Last edited
+Jannik MaierhöferMarc KlingenSteffen Schmitz+5 more
+Ask AIA
+A

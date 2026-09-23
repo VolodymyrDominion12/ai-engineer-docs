@@ -1,0 +1,131 @@
+### SOURCE: https://promptfoo.dev/docs/configuration/expected-outputs/model-graded/select-best/
+
+Select Best | Promptfoo- - - - - - 
+- 
+- 
+ - 
+ - Skip to main content
+ On this page
+Select Best
+The select-best assertion compares multiple outputs in the same test case and selects the one that best meets a specified criterion. This is useful for comparing different prompt or model variations to determine which produces the best result.
+How to use it​
+To use the select-best assertion type, add it to your test configuration like this:
+```
+assert:
+ - type: select-best
+ value: 'choose the most concise and accurate response'
+```
+Note: This assertion requires multiple prompts or providers to generate different outputs to compare.
+How it works​
+The select-best checker:
+- Takes all outputs from the test case
+- Evaluates each output against the specified criterion
+- Selects the best output
+- Returns pass=true for the winning output and pass=false for others
+Example Configuration​
+Here's a complete example showing how to use select-best to compare different prompt variations:
+```
+prompts:
+ - 'Write a tweet about {{topic}}'
+ - 'Write a very concise, funny tweet about {{topic}}'
+ - 'Compose a tweet about {{topic}} that will go viral'
+providers:
+ - openai:gpt-5
+tests:
+ - vars:
+ topic: 'artificial intelligence'
+ assert:
+ - type: select-best
+ value: 'choose the tweet that is most likely to get high engagement'
+ - vars:
+ topic: 'climate change'
+ assert:
+ - type: select-best
+ value: 'choose the tweet that best balances information and humor'
+```
+Overriding the Grader​
+Like other model-graded assertions, you can override the default grader:
+- 
+Using the CLI:
+```
+promptfoo eval --grader openai:gpt-5-mini
+```
+- 
+Using test options:
+```
+defaultTest:
+ options:
+ provider: openai:gpt-5-mini
+```
+- 
+Using assertion-level override:
+```
+assert:
+ - type: select-best
+ value: 'choose the most engaging response'
+ provider: openai:gpt-5-mini
+```
+Customizing the Prompt​
+You can customize the evaluation prompt using the rubricPrompt property:
+```
+defaultTest:
+ options:
+ rubricPrompt: |
+ Here are {{ outputs | length }} responses:
+ {% for output in outputs %}
+ Output {{ loop.index0 }}: {{ output }}
+ {% endfor %}
+ Criteria: {{ criteria }}
+ Analyze each output against the criteria.
+ Choose the best output by responding with its index (0 to {{ outputs | length - 1 }}).
+```
+Further reading
+See model-graded metrics for more options.
+Last updated on Sep 19, 2026 by dependabot[bot]
+- How to use it
+- How it works
+- Example Configuration
+- Overriding the Grader
+- Customizing the Prompt
+Product
+- Red Teaming
+- Guardrails
+- Model Security
+- Evaluations
+- Enterprise
+- MCP Proxy
+- Status 
+Solutions
+- Financial Services
+- Insurance
+- Telecommunications
+- Real Estate
+Resources
+- API Reference
+- LLM Red Teaming
+- Foundation Model Reports
+- Language Model Security DB
+- Running Benchmarks
+- Evaluating Factuality
+- Evaluating RAGs
+- Minimizing Hallucinations
+- Config Validator
+Company
+- About
+- Blog
+- Release Notes
+- Press
+- Events
+- Contact
+- Swag
+- Log in
+Legal & Social
+- GitHub 
+- Discord 
+- LinkedIn 
+- Privacy Policy
+- Terms of Service
+- Trust Center 
+- Cookie Settings
+- 
+© 2026 Promptfoo, Inc.
