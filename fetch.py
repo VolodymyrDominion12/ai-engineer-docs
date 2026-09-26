@@ -49,5 +49,8 @@ if __name__ == "__main__":
         print(f"FETCH-FAIL {url}: {e}")
         sys.exit(1)
     text = body if (md or url.endswith(".md")) else clean(body)
+    if "--fail-on-error" in sys.argv and not text.strip():
+        print(f"FETCH-EMPTY {url}: отримано порожню відповідь", file=sys.stderr)
+        sys.exit(2)
     print(f"### SOURCE: {url}\n")
     print(text[:limit])

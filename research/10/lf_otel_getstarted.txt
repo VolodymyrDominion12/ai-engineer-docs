@@ -1,0 +1,268 @@
+### SOURCE: https://langfuse.com/docs/opentelemetry/get-started
+
+- - - - - - - - - - - - - - OpenTelemetry (OTEL) for LLM Observability - Langfuse- - - - - - - 
+ Langfuse v4: up to 165× faster · Read moreLangfuse v4 is here: real-time, up to 165× faster · Read more
+ Integrations Overview
+ OverviewNative Python SDK ↗JS/TS SDK ↗MCP Server ↗CLI ↗API ↗OpenTelemetry OverviewMigrate ingestion to v4Experiments
+Frameworks 
+Model Providers 
+Gateways 
+No-Code Agent Builders 
+Analytics 
+ClickHouse Products 
+Developer Tools 
+Other 
+ Overview 
+Integrations Native OpenTelemetry Overview
+Copy page 
+OpenTelemetry (OTEL) for LLM Observability 
+OpenTelemetry (OTEL) is a CNCF project that provides a set of specifications, APIs, and libraries that define a standard way to collect distributed traces and metrics from your application.
+Use this page if your application, framework, or collector already emits OpenTelemetry (OTEL) traces and you want to send them to Langfuse.
+ Using Python or JavaScript/TypeScript? Use the Langfuse SDK instead of building directly on the OTEL API. The SDK handles Langfuse attributes, propagation, media, filtering, and export for you. For other languages, use the native OpenTelemetry API for your language and export spans to Langfuse.
+OpenTelemetry endpoint 
+Langfuse can receive traces on the /api/public/otel (OTLP) endpoint.
+If you use a Collector that uses the OpenTelemetry SDK to export traces, you can use the following configuration:
+```
+OTEL_EXPORTER_OTLP_ENDPOINT="https://cloud.langfuse.com/api/public/otel" # 🇪🇺 EU data region
+# Other Langfuse data regions include 🇺🇸 US: https://us.cloud.langfuse.com/api/public/otel, 🇯🇵 Japan: https://jp.cloud.langfuse.com/api/public/otel and ⚕️ HIPAA: https://hipaa.cloud.langfuse.com/api/public/otel
+# OTEL_EXPORTER_OTLP_ENDPOINT="http://localhost:3000/api/public/otel" # 🏠 Local deployment (>= v3.22.0)
+OTEL_EXPORTER_OTLP_HEADERS="Authorization=Basic ${AUTH_STRING},x-langfuse-ingestion-version=4"
+```
+ Langfuse uses Basic Auth to authenticate requests.
+You can use the following command to get the base64 encoded API keys (referred to as AUTH_STRING): echo -n "pk-lf-1234567890:sk-lf-1234567890" | base64.
+For long API Keys on GNU systems, you may have to add -w 0 at the end since base64 auto-wraps columns.
+Enable real-time ingestion in Langfuse v4 
+If you send spans directly via OpenTelemetry, include the
+x-langfuse-ingestion-version: 4 header so that new data appears in real time
+on the v4 data model and the v2 Observations and Metrics APIs. Without
+this header, directly ingested OpenTelemetry data can be delayed by up to 10
+minutes. The OTEL_EXPORTER_OTLP_HEADERS configuration above already includes
+the header.
+If your setup uses signal-specific header settings, configure the same header
+on the traces exporter:
+```
+OTEL_EXPORTER_OTLP_TRACES_HEADERS="Authorization=Basic ${AUTH_STRING},x-langfuse-ingestion-version=4"
+```
+ If your collector requires signal-specific environment variables, the trace endpoint is /api/public/otel/v1/traces.
+```
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT="https://cloud.langfuse.com/api/public/otel/v1/traces" # EU data region
+# Other Langfuse data regions include 🇺🇸 US: https://us.cloud.langfuse.com/api/public/otel/v1/traces, 🇯🇵 Japan: https://jp.cloud.langfuse.com/api/public/otel/v1/traces and ⚕️ HIPAA: https://hipaa.cloud.langfuse.com/api/public/otel/v1/traces
+```
+Please note that Langfuse currently supports OTLP over HTTP with both HTTP/JSON and HTTP/protobuf. gRPC is not supported yet.
+ Migrating to Langfuse v4? If you send custom events to the legacy /api/public/ingestion endpoint, or already send OTEL spans that rely on trace input/output or root-only attributes, follow the custom ingestion migration guide.
+Langfuse can operate as an OpenTelemetry Backend to receive traces on the /api/public/otel (OTLP) endpoint. In addition to the Langfuse SDKs and native integrations, this OpenTelemetry endpoint is designed to increase compatibility with frameworks, libraries, and languages beyond the SDKs and native integrations. Popular OpenTelemetry libraries include OpenLLMetry and OpenLIT which extend Language support of Langfuse tracing to Java and Go and cover frameworks such as AutoGen, Semantic Kernel, and more.
+As the Semantic Conventions for GenAI attributes on traces are still evolving, Langfuse maps the received OTel traces to the Langfuse data model and supports additional attributes that are popular in the OTel GenAI ecosystem (attribute mapping). Please contribute to the discussion on GitHub if an integration does not work as expected or does not parse the correct attributes.
+Using other OTEL-based tools? If you're using Langfuse alongside other OpenTelemetry-based tools, you may run into conflicts. See Using Langfuse with an Existing OpenTelemetry Setup for configuration guidance.
+ Important: If you want to filter and aggregate by userId, sessionId,
+metadata, version, release, or tags, you need to propagate these
+trace-level attributes to every span in the trace. Start with
+Propagating Trace Attributes to All Spans before
+wiring this up in production.
+ OTLP replaces the deprecated POST /api/public/ingestion API. See
+Migration of deprecated APIs for
+the endpoint mapping; the deprecated endpoint itself is documented in its
+endpoint reference section.
+Important: Propagating Trace Attributes to All Spans 
+When using OpenTelemetry (OTEL) instrumentation to send traces to Langfuse,
+certain trace-level attributes should be propagated to all spans within a
+trace to enable accurate aggregations and filtering in Langfuse. These
+attributes include:
+- userId (via langfuse.user.id or user.id)
+- sessionId (via langfuse.session.id or session.id)
+- metadata (via langfuse.trace.metadata.* for top-level metadata keys)
+- version (via langfuse.version)
+- release (via langfuse.release)
+- tags (via langfuse.trace.tags)
+- trace_name (via langfuse.trace.name)
+Langfuse filters and aggregations increasingly operate across individual
+observations rather than only at the trace level. If you want to reliably
+filter or aggregate by these attributes, they need to be present on each span
+in the trace, not only on the root span.
+Recommended: Use OpenTelemetry Baggage for Propagation 
+The recommended approach for propagating these attributes across all spans is
+to use OpenTelemetry Baggage
+with a BaggageSpanProcessor. Baggage is a built-in OpenTelemetry mechanism
+for context propagation that automatically copies specified key-value pairs to
+all spans within a trace context.
+To implement this pattern:
+- Set the desired attributes as baggage entries at the beginning of your trace.
+- Set the attributes on the currently active span.
+- Configure a BaggageSpanProcessor in your OpenTelemetry setup to automatically copy baggage entries to span attributes.
+- The processor will ensure all downstream spans in the trace context receive these attributes.
+For implementation details and code examples, refer to the OpenTelemetry
+documentation for
+Python and
+JavaScript.
+ Security Consideration: OpenTelemetry baggage is propagated across
+service boundaries and to third-party APIs. Do not include sensitive
+information (passwords, API keys, personal data, etc.) in baggage when
+using this approach, as it will be transmitted to all downstream services.
+Alternative: Use Langfuse SDK Helpers 
+If you're using the Langfuse SDKs with
+OpenTelemetry integration, you can use the convenience methods
+propagate_attributes() (Python) or propagateAttributes() (TypeScript),
+which handle attribute propagation automatically. These methods provide a
+simpler interface and are the recommended approach when using Langfuse SDKs.
+Ingestion Options 
+OpenTelemetry native Langfuse SDK v4 
+The quickest path to start tracing with Langfuse is the new OTEL-native Langfuse SDK v4. The SDK is a thin layer on top of the official OpenTelemetry client that automatically converts emitted spans into Langfuse observations (Langfuse calls spans observations; span is also a specific observation type) and adds first-class helpers for LLM-specific features such as token usage, cost tracking, prompt linking, and scoring.
+Because it lives in the shared OpenTelemetry context, spans from other OTEL-instrumented libraries can be exported to Langfuse too. By default, Langfuse focuses on LLM-relevant spans (Langfuse SDK spans, spans with gen_ai.* attributes, and known LLM instrumentors). To export everything, use a permissive custom filter as described in the advanced SDK docs.
+Get started by following the dedicated guide for the Python implementation here: /docs/observability/sdk/overview.
+Custom via OpenTelemetry SDKs 
+You can use the OpenTelemetry SDKs to directly export traces to Langfuse with the configuration mentioned above. Thereby, Language support of Langfuse is extended to other languages than the ones supported by the Langfuse SDKs (Python and JS/TS).
+Run experiments via OpenTelemetry 
+To group direct-OTEL traces as Langfuse experiments, start with Experiments via OpenTelemetry and then add the experiment and item attributes described in Ingest experiment spans with OpenTelemetry.
+Use OpenTelemetry GenAI Instrumentation Libraries 
+Any OpenTelemetry compatible instrumentation can be used to export traces to Langfuse. Check out the following end-to-end examples of popular instrumentation SDKs to get started:
+Libraries
+- OpenLIT
+- OpenLLMetry
+- Arize
+- MLflow
+Comparison of OpenTelemetry Instrumentation Libraries+
+Category | Item | OpenLLMetry | openlit | Arize | 
+LLMs | AI21 | | ✅ | | 
+ | Aleph Alpha | ✅ | | | 
+ | Amazon Bedrock | ✅ | ✅ | ✅ | 
+ | Anthropic | ✅ | ✅ | ✅ | 
+ | Assembly AI | | ✅ | | 
+ | Azure AI Inference | | ✅ | | 
+ | Azure OpenAI | ✅ | ✅ | | 
+ | Cohere | ✅ | ✅ | | 
+ | DeepSeek | | ✅ | | 
+ | ElevenLabs | | ✅ | | 
+ | GitHub Models | | ✅ | | 
+ | Google AI Studio | | ✅ | | 
+ | Google Generative AI (Gemini) | ✅ | | | 
+ | Groq | ✅ | ✅ | ✅ | 
+ | HuggingFace | ✅ | ✅ | ✅ | 
+ | IBM Watsonx AI | ✅ | | | 
+ | Mistral AI | ✅ | ✅ | ✅ | 
+ | NVIDIA NIM | | ✅ | | 
+ | Ollama | ✅ | ✅ | | 
+ | OpenAI | ✅ | ✅ | ✅ | 
+ | OLA Krutrim | | ✅ | | 
+ | Prem AI | | ✅ | | 
+ | Replicate | ✅ | | | 
+ | SageMaker (AWS) | ✅ | | | 
+ | Titan ML | | ✅ | | 
+ | Together AI | ✅ | ✅ | | 
+ | vLLM | | ✅ | | 
+ | Vertex AI | ✅ | ✅ | ✅ | 
+ | xAI | | ✅ | | 
+Vector DBs | AstraDB | | ✅ | | 
+ | Chroma | ✅ | | | 
+ | ChromaDB | | ✅ | | 
+ | LanceDB | ✅ | | | 
+ | Marqo | ✅ | | | 
+ | Milvus | ✅ | ✅ | | 
+ | Pinecone | ✅ | ✅ | | 
+ | Qdrant | ✅ | ✅ | | 
+ | Weaviate | ✅ | | | 
+Frameworks | AutoGen / AG2 | | ✅ | ✅ | 
+ | ControlFlow | | ✅ | | 
+ | CrewAI | ✅ | ✅ | ✅ | 
+ | Crawl4AI | | ✅ | | 
+ | Dynamiq | | ✅ | | 
+ | EmbedChain | | ✅ | | 
+ | FireCrawl | | ✅ | | 
+ | Guardrails AI | | ✅ | ✅ | 
+ | Haystack | ✅ | ✅ | ✅ | 
+ | Julep AI | | ✅ | | 
+ | LangChain | ✅ | ✅ | ✅ | 
+ | LlamaIndex | ✅ | ✅ | ✅ | 
+ | Letta | | ✅ | | 
+ | LiteLLM | ✅ | ✅ | ✅ | 
+ | mem0 | | ✅ | | 
+ | MultiOn | | ✅ | | 
+ | Phidata | | ✅ | | 
+ | SwarmZero | | ✅ | | 
+ | LlamaIndex Workflows | | | ✅ | 
+ | LangGraph | | | ✅ | 
+ | DSPy | | | ✅ | 
+ | Prompt flow | | | ✅ | 
+ | Instructor | | | ✅ | 
+GPUs | AMD Radeon | | ✅ | | 
+ | NVIDIA | | ✅ | | 
+JavaScript | OpenAI Node SDK | | | ✅ | 
+ | LangChain.js | | | ✅ | 
+ | Vercel AI SDK | | | ✅ | 
+Framework integrations powered by OpenTelemetry
+- Hugging Face smolagents
+- CrewAI
+- AutoGen
+- Semantic Kernel
+- Pydantic AI
+- Spring AI
+- Strands
+- LlamaIndex
+- LlamaIndex Workflows
+Export from OpenTelemetry Collector 
+If you run an OpenTelemetry Collector, you can use the following configuration to export traces to Langfuse:
+```
+receivers:
+ otlp:
+ protocols:
+ grpc:
+ endpoint: 0.0.0.0:4317
+ http:
+ endpoint: 0.0.0.0:4318
+processors:
+ batch:
+ memory_limiter:
+ # 80% of maximum memory up to 2G
+ limit_mib: 1500
+ # 25% of limit up to 2G
+ spike_limit_mib: 512
+ check_interval: 5s
+exporters:
+ otlphttp/langfuse:
+ endpoint: "https://cloud.langfuse.com/api/public/otel" # EU data region
+ # Other regions: US https://us.cloud.langfuse.com/api/public/otel, Japan https://jp.cloud.langfuse.com/api/public/otel, HIPAA https://hipaa.cloud.langfuse.com/api/public/otel
+ headers:
+ Authorization: "Basic ${AUTH_STRING}" # Previously encoded API keys
+ x-langfuse-ingestion-version: "4"
+service:
+ pipelines:
+ traces:
+ receivers: [otlp]
+ processors: [memory_limiter, batch]
+ exporters: [otlphttp/langfuse]
+```
+Filtering Spans sent to Langfuse 
+In case you want to selectively send OTel Spans to Langfuse, you can use the OTel Collector filterprocessor.
+It enables you to filter spans based on attributes, span names, and more.
+As this applies on a Span level, you may risk incomplete traces and should be careful when applying complex filter rules.
+Langfuse also requires that a root span is sent to our backend to ensure that a trace is created correctly.
+With the configuration below, you would only forward Spans which have a gen_ai.system attribute set to openai:
+```
+receivers:
+ otlp:
+ protocols:
+ grpc:
+ endpoint: 0.0.0.0:4317
+ http:
+ endpoint: 0.0.0.0:4318
+processors:
+ filter/openaisystem:
+ error_mode: ignore
+ traces:
+ span:
+ - 'attributes["gen_ai.system"] != "openai"'
+exporters:
+ otlphttp/langfuse:
+ endpoint: "https://cloud.langfuse.com/api/public/otel" # EU data region
+ # Other regions: US https://us.cloud.langfuse.com/api/public/otel, Japan https://jp.cloud.langfuse.com/api/public/otel, HIPAA https://hipaa.cloud.langfuse.com/api/public/otel
+ headers:
+ Authorization: "Basic ${AUTH_STRING}" # Previously encoded API keys
+ x-langfuse-ingestion-version: "4"
+service:
+ pipelines:
+ traces:
+ receivers: [otlp]
+ processors: [filter/openaisystem]
+ exporters: [otlphttp/langfuse]
+```
+Attribute Mapping 
+Langfuse aims to be compliant with the OpenTelemetry GenAI semantic conventions and support major LLM instrumentation frameworks.
+Furthermore, Langfuse uses attributes within the langfuse.* namespace to map OpenTelemetry span attributes directly to the Langfuse data model. These specific attributes always take precedence over the generic OpenTelemetry conventions and are recommended for all users that are manually instrumenting 

@@ -12,3 +12,19 @@ venv/
 # OS
 .DS_Store
 Thumbs.db
+
+# Секрети — НІКОЛИ не комітити. Ключі читаються лише з .env
+.env
+.env.*
+!.env.example
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb_checkpoints
+
+# Кеші, які швидко ростуть і не потрібні в git
+.hf_cache/
+.cache/
+*.egg-info/
+build/
+dist/

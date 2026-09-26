@@ -1,0 +1,246 @@
+### SOURCE: https://langfuse.com/docs/observability/sdk/python/sdk-v3
+
+- - - - - - - - - - - - - - - - - - Python & JS/TS Observability SDKs - Langfuse- - - - - - - 
+ Langfuse v4: up to 165× faster · Read moreLangfuse v4 is here: real-time, up to 165× faster · Read more
+ Docs Overview
+ OverviewExample ProjectAsk AIGet Started
+Start TracingUse Prompt ManagementSet up EvalsProducts
+Observability OverviewGet StartedConceptsBest PracticesFeatures 
+SDKs OverviewInstrumentationAdvanced FeaturesTroubleshooting & FAQUpgrade Path 
+ Python Reference ↗ JS/TS Reference ↗
+ Integrations ↗Troubleshooting & FAQ
+Prompt Management 
+Evaluation 
+Platform
+Metrics 
+API & Data Platform 
+AssistantAdministration 
+Security & GuardrailsVersions & CompatibilityMore
+GlossaryRoadmapLangfuse v4 is liveDocs MCP ServerSDK & API References 
+ Security & Compliance ↗ Support ↗
+ Overview 
+Docs Observability SDKs Overview
+Copy page 
+Langfuse SDKs 
+Langfuse offers two SDKs:
+- Python SDK v4 
+- JS/TS SDK v5 
+- Other Languages via OpenTelemetry
+Upgrading from Python SDK v3 or JS/TS SDK v4? Follow the upgrade paths (Python v3 → v4, JS/TS v4 → v5).
+The Langfuse SDKs are the recommended way to create custom observations and traces and use the Langfuse prompt-management and evaluation features. Both SDKs work with Langfuse Cloud (hosted by Langfuse, free tier, no infrastructure to run) and self-hosted Langfuse with the same code; only the credentials and base URL differ.
+ Not using a Langfuse SDK? Send traces via
+OpenTelemetry, either directly or with an
+auto-instrumentation
+library. On
+Langfuse Cloud, POST /api/public/ingestion stops accepting everything except
+scores on November 16, 2026. See the migration
+guide to move a custom
+integration to v4.
+Key benefits
+- Based on OpenTelemetry, so you can use any OTEL-based instrumentation library for your LLM stack.
+- Fully async requests, meaning Langfuse adds almost no latency.
+- Interoperable with Langfuse native integrations.
+- Accurate latency tracking via synchronous timestamps.
+- IDs available for downstream use.
+- Great DX when nesting observations.
+- Cannot break your application: SDK errors are caught and logged.
+ This section documents tracing related features of the Langfuse SDK. To use the Langfuse SDK for prompt management and evaluation, visit their respective documentation.
+Requirements for self-hosted Langfuse+
+SDK | Minimum self-hosted server version | Notes | 
+Python SDK v3 and v4 | ≥ 3.63.0 | Observations API v2 and Metrics API v2 require Langfuse v4 | 
+JS/TS SDK v4 and v5 | ≥ 3.63.0 | Observations API v2 and Metrics API v2 require Langfuse v4 | 
+Langfuse Cloud always satisfies these minimums. See the self-hosted compatibility matrix for the full picture per server version, and Versions & Compatibility for Langfuse Cloud.
+Legacy documentation+
+This documentation is for the latest versions of the Langfuse SDKs.
+- Legacy Python SDK v3 documentation
+- Legacy TypeScript SDK v4 documentation
+Quickstart 
+Follow the quickstart guide to get the first trace into Langfuse. See the setup section for more details.
+Python SDKJS/TS SDK
+1. Install package:
+```
+pip install langfuse
+```
+2. Add credentials:
+.env 
+```
+LANGFUSE_SECRET_KEY = "sk-lf-..."
+LANGFUSE_PUBLIC_KEY = "pk-lf-..."
+LANGFUSE_BASE_URL = "https://cloud.langfuse.com" # 🇪🇺 EU region
+# Other Langfuse data regions include 🇺🇸 US: https://us.cloud.langfuse.com, 🇯🇵 Japan: https://jp.cloud.langfuse.com and ⚕️ HIPAA: https://hipaa.cloud.langfuse.com
+```
+3. Instrument your application:
+Instrumentation means adding code that records what’s happening in your application so it can be sent to Langfuse. There are three main ways of instrumenting your code with the Python SDK.
+In this example we will use the context manager. You can also use the decorator or create manual observations.
+```
+from langfuse import get_client
+langfuse = get_client()
+# Create a span using a context manager
+with langfuse.start_as_current_observation(as_type="span", name="process-request") as span:
+ # Your processing logic here
+ span.update(output="Processing complete")
+ # Create a nested generation for an LLM call
+ with langfuse.start_as_current_observation(as_type="generation", name="llm-response", model="gpt-3.5-turbo") as generation:
+ # Your LLM call logic here
+ generation.update(output="Generated response")
+# All spans are automatically closed when exiting their context blocks
+# Flush events in short-lived applications
+langfuse.flush()
+```
+When should I call langfuse.flush()?
+4. Run your application and see the trace in Langfuse:
+See the trace in Langfuse.
+1. Install packages:
+```
+npm install @langfuse/tracing @langfuse/otel @opentelemetry/sdk-node
+```
+2. Set environment variables:
+.env 
+```
+LANGFUSE_SECRET_KEY = "sk-lf-..."
+LANGFUSE_PUBLIC_KEY = "pk-lf-..."
+LANGFUSE_BASE_URL = "https://cloud.langfuse.com" # 🇪🇺 EU region
+# Other Langfuse data regions include 🇺🇸 US: https://us.cloud.langfuse.com, 🇯🇵 Japan: https://jp.cloud.langfuse.com and ⚕️ HIPAA: https://hipaa.cloud.langfuse.com
+```
+3. Initialize OpenTelemetry:
+Create an instrumentation.ts to register the Langfuse span processor so traces reach Langfuse.
+instrumentation.ts 
+```
+import { NodeSDK } from "@opentelemetry/sdk-node";
+import { LangfuseSpanProcessor } from "@langfuse/otel";
+export const sdk = new NodeSDK({
+ spanProcessors: [new LangfuseSpanProcessor()],
+});
+sdk.start();
+```
+Import this file at the top of your app's entry point (e.g., index.ts).
+4. Instrument your app:
+Instrumentation means adding code that records what’s happening in your application so it can be sent to Langfuse. There are three main ways of instrumenting your code with the TypeScript SDK.
+In this example we will use the context manager. You can also use the decorator or create manual observations.
+index.ts 
+```
+import { sdk } from "./instrumentation";
+import { startActiveObservation } from "@langfuse/tracing";
+async function main() {
+ await startActiveObservation("my-first-trace", async (span) => {
+ span.update({
+ input: "Hello, Langfuse!",
+ output: "This is my first trace!",
+ });
+ });
+}
+// Shutdown flushes events and is required for short-lived applications
+main().finally(() => sdk.shutdown());
+```
+When do I need to use shutdown()?
+5. Run your application and see the trace in Langfuse:
+```
+npx tsx index.ts
+```
+See the trace in Langfuse.
+Setup 
+This section covers all detail of setting up the Langfuse SDKs. Follow the Quickstart guide to create your first trace.
+Install the SDK 
+Python SDKJS/TS SDK
+Pip install the Langfuse Python SDK.
+```
+pip install langfuse
+```
+The Langfuse JS/TS SDK is designed to be modular. Install the relevant packages for a full tracing setup:
+```
+npm install @langfuse/tracing @langfuse/otel @opentelemetry/sdk-node
+```
+Here's an overview of the available packages for the TypeScript SDK:
+Package | Description | Environment | 
+@langfuse/core | Core utilities, types, and logger shared across packages. | Universal JS | 
+@langfuse/client | Client for features like prompts, datasets, and scores. | Universal JS | 
+@langfuse/browser | Browser-safe client for public-key score ingestion. | Browser | 
+@langfuse/tracing | Core OpenTelemetry-based tracing functions (startObservation, etc.). | Universal JS | 
+@langfuse/otel | The LangfuseSpanProcessor to export traces to Langfuse. | Node.js ≥ 20 | 
+@langfuse/openai | Automatic tracing integration for the OpenAI SDK. | Universal JS | 
+@langfuse/langchain | CallbackHandler for tracing LangChain applications. | Universal JS | 
+Configure credentials 
+To authenticate with Langfuse, add your Langfuse credentials as environment variables. You can get your credentials by signing up for a free Langfuse Cloud account or by self-hosting Langfuse.
+If you are self-hosting Langfuse or using a data region other than the default (EU, https://cloud.langfuse.com), ensure you configure the base URL argument or the LANGFUSE_BASE_URL environment variable.
+You can also pass the credentials directly to the constructor.
+.env 
+```
+LANGFUSE_SECRET_KEY = "sk-lf-..."
+LANGFUSE_PUBLIC_KEY = "pk-lf-..."
+LANGFUSE_BASE_URL = "https://cloud.langfuse.com" # 🇪🇺 EU region
+# Other Langfuse data regions include 🇺🇸 US: https://us.cloud.langfuse.com, 🇯🇵 Japan: https://jp.cloud.langfuse.com and ⚕️ HIPAA: https://hipaa.cloud.langfuse.com
+```
+Initialize OpenTelemetry (JS/TS only) 
+Python SDKJS/TS SDK
+The Python SDK automatically sets up OpenTelemetry when initializing the client.
+By default, the SDK exports Langfuse + GenAI/LLM spans. To customize this, use should_export_span (recommended). blocked_instrumentation_scopes still works but is deprecated and planned for removal in a future version.
+The JS/TS SDK's tracing is built on top of OpenTelemetry, so you need to set up the OpenTelemetry SDK. The LangfuseSpanProcessor is the key component that sends traces to Langfuse.
+instrumentation.ts 
+```
+import { NodeSDK } from "@opentelemetry/sdk-node";
+import { LangfuseSpanProcessor } from "@langfuse/otel";
+const sdk = new NodeSDK({
+ spanProcessors: [new LangfuseSpanProcessor()],
+});
+sdk.start();
+```
+By default, the processor exports Langfuse + GenAI/LLM spans. To customize this, use shouldExportSpan.
+For more options to configure the LangfuseSpanProcessor such as masking, filtering, and more, see advanced features.
+Learn more in the OpenTelemetry JS getting-started guide.
+ Next.js users:
+If you are using Next.js, you can register the LangfuseSpanProcessor via registerOTel from @vercel/otel as long as you are on @vercel/otel v2 or later. Earlier versions did not support the OpenTelemetry JS SDK v2 on which the @langfuse/tracing and @langfuse/otel packages are based; this was resolved in @vercel/otel v2. The NodeSDK setup described above also works and carries no version requirement.
+See here for a full example for the Vercel AI SDK with NextJS on Vercel.
+Client Setup 
+Python SDKJS/TS SDK
+Initialize the Langfuse client with get_client() to interact with Langfuse. It will automatically use the environment variables you set above.
+Initialize client 
+```
+from langfuse import get_client
+langfuse = get_client()
+# Verify connection
+if langfuse.auth_check():
+ print("Langfuse client is authenticated and ready!")
+else:
+ print("Authentication failed. Please check your credentials and host.")
+```
+The Langfuse client is a singleton. It can be accessed anywhere in your application using the get_client() function.
+Alternative: Configure via constructor+
+Optionally, you can initialize the client via Langfuse() to pass in configuration options (see below). Otherwise, it is created automatically when you call get_client() based on environment variables.
+ If you create multiple Langfuse instances with the same public_key, the singleton instance is reused and new arguments are ignored.
+Initialize client 
+```
+from langfuse import Langfuse
+langfuse = Langfuse(
+ public_key="your-public-key",
+ secret_key="your-secret-key",
+ base_url="https://cloud.langfuse.com", # 🇪🇺 EU region
+ # Other Langfuse data regions include 🇺🇸 US: https://us.cloud.langfuse.com, 🇯🇵 Japan: https://jp.cloud.langfuse.com and ⚕️ HIPAA: https://hipaa.cloud.langfuse.com
+)
+```
+All key configuration options are listed in the Python SDK reference.
+Initialize the LangfuseClient to interact with Langfuse. The client will automatically use the environment variables you set above.
+client.ts 
+```
+import { LangfuseClient } from "@langfuse/client";
+const langfuse = new LangfuseClient();
+```
+Alternative: Configure via constructor+
+You can also pass the Langfuse credentials directly to the constructor:
+client.ts 
+```
+import { LangfuseClient } from "@langfuse/client";
+const langfuse = new LangfuseClient({
+ publicKey: "your-public-key",
+ secretKey: "your-secret-key",
+ baseUrl: "https://cloud.langfuse.com", // or your self-hosted instance
+});
+```
+Use the SDK 
+With the SDK set up, you can:
+- Instrument your application
+- Use Langfuse Prompt Management
+- Run Experiments and create Scores
+- Query data
+OpenTelemetry foundation 
+The Langfuse SDKs are built on top of OpenTelemetry. This provides:
+- Standardization with the wider observability ec
