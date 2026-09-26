@@ -264,11 +264,11 @@ import re
 doc = pathlib.Path(ROOT / "research/hf5_tfdoc_llm_tutorial.txt").read_text(encoding="utf-8")
 
 # Таблиця «Common Options»: | `param` | `type` | опис |
-rows = re.findall(r"^\\|\\s*`([^`]+)`\\s*\\|\\s*`([^`]+)`\\s*\\|\\s*(.+?)\\s*\\|$", doc, re.M)
+param_rows = re.findall(r"^\\|\\s*`([^`]+)`\\s*\\|\\s*`([^`]+)`\\s*\\|\\s*(.+?)\\s*\\|$", doc, re.M)
 
-print(f"Параметрів у офіційній таблиці «Common Options»: {len(rows)}")
+print(f"Параметрів у офіційній таблиці «Common Options»: {len(param_rows)}")
 print()
-for name, kind, desc in rows:
+for name, kind, desc in param_rows:
     print(f"{name:18} {kind:10} {desc[:78]}")
 '''
     ),
@@ -290,46 +290,51 @@ sampling кидає жереб, beam оцінює сукупну ймовірн�
         '''
 import math
 
-# Умовний розподіл: 4 кроки, 3 токени. Це СХЕМА, а не вихід transformers.
+# СХЕМА (а не вихід transformers): умовний розподіл наступного токена залежить від префікса.
+# Саме тому greedy і beam можуть розійтися. Токени — A, B, C.
+NEXT = {
+    "":  [0.50, 0.40, 0.10],   # старт: A найімовірніший
+    "A": [0.20, 0.70, 0.10],   # після A продовження слабке
+    "B": [0.90, 0.05, 0.05],   # після B продовження сильне
+    "C": [0.30, 0.30, 0.40],
+}
 VOCAB = ["A", "B", "C"]
-STEPS = [
-    [0.70, 0.20, 0.10],   # крок 1
-    [0.10, 0.60, 0.30],   # крок 2
-    [0.20, 0.30, 0.50],   # крок 3
-]
+DEPTH = 2
 
 
-def greedy(stack):
-    """Завжди бере найімовірніший токен."""
-    out, logp = [], 0.0
-    for step in STEPS:
-        i = max(range(len(step)), key=step.__getitem__)
-        out.append(VOCAB[i])
-        logp += math.log(step[i])
-    return "".join(out), logp
+def greedy():
+    """Бере найімовірніший токен на КОЖНОМУ кроці."""
+    prefix, logp = "", 0.0
+    for _ in range(DEPTH):
+        i = max(range(len(VOCAB)), key=NEXT[prefix].__getitem__)
+        logp += math.log(NEXT[prefix][i])
+        prefix += VOCAB[i]
+    return prefix, logp
 
 
 def beam_search(width=2):
-    """Тримає `width` найкращих послідовностей і в кінці бере найкращу сукупно."""
+    """Тримає `width` найкращих префіксів і в кінці бере найкращий сукупно."""
     beams = [("", 0.0)]
-    for step in STEPS:
-        candidates = [(seq + VOCAB[i], logp + math.log(p))
-                      for seq, logp in beams
-                      for i, p in enumerate(step)]
+    for _ in range(DEPTH):
+        candidates = [(prefix + VOCAB[i], logp + math.log(p))
+                      for prefix, logp in beams
+                      for i, p in enumerate(NEXT[prefix])]
         beams = sorted(candidates, key=lambda kv: kv[1], reverse=True)[:width]
     return beams[0]
 
 
-g_seq, g_logp = greedy(STEPS)
+g_seq, g_logp = greedy()
 b_seq, b_logp = beam_search(width=2)
-
-print(f"greedy (усі кроки по максимуму): {g_seq}  сукупний log-скор {g_logp:.3f}")
-print(f"beam width=2                   : {b_seq}  сукупний log-скор {b_logp:.3f}")
+print(f"greedy (кожен крок по максимуму): {g_seq}  сукупний log-скор {g_logp:.4f}")
+print(f"beam width=2                    : {b_seq}  сукупний log-скор {b_logp:.4f}")
 print()
-print("Greedy оптимізує кожен крок окремо; beam — сукупність, тому послідовності різняться.")
+assert g_seq != b_seq, "стратегії мають розійтися"
+assert b_logp > g_logp, "beam має знайти сукупно ймовірнішу послідовність"
+print(f"Greedy вибрав {g_seq}, beam — {b_seq}.")
+print(f"Greedy бере найімовірніший ПЕРШИЙ токен (A) і не бачить, що продовження після нього слабке;")
+print(f"beam оцінює сукупну ймовірність і знаходить кращий шлях (B -> A), хоч B стартує з 0.40.")
 print()
-print("Зверніть увагу: greedy тут ЗБІГАЄТЬСЯ з першим променем лише тому, що розподіли прості.")
-print("На реальних моделях сукупний оптимум регулярно лежить не на жадібному шляху.")
+print("Саме тому greedy ламається на довгих виходах і повторюється, а для чату беруть sampling.")
 '''
     ),
     md(
@@ -363,7 +368,10 @@ import re
 doc = pathlib.Path(ROOT / "research/hf5_tfdoc_attention_interface.txt").read_text(encoding="utf-8")
 
 # У файлі таблиця подана HTML-тегами <tr><td><code>"name"</code></td><td>опис</td></tr>
-rows = re.findall(r"<tr><td><code>(?:&quot;|\")(.+?)(?:&quot;|\")</code></td><td>(.*?)</td></tr>", doc)
+rows = re.findall(r'<tr><td><code>(?:&quot;|")(.+?)(?:&quot;|")</code></td><td>(.*?)</td></tr>', doc)
+
+# У HTML-таблиці вертикальна риска закодована як &#124; — повертаємо її до звичайного вигляду.
+rows = [(name.replace("&#124;", "|"), desc) for name, desc in rows]
 
 print(f"Бекендів у офіційній таблиці: {len(rows)}")
 print()
@@ -793,7 +801,7 @@ assert "flash_attention_2" in backends and "flex_attention" in backends
 print(f"✓ AttentionInterface: {len(backends)} бекендів, зокрема sdpa і paged|sdpa")
 
 # ── 7. Параметри generate з офіційної таблиці ────────────────────────────
-param_names = {name for name, _, _ in rows}
+param_names = {name for name, _, _ in param_rows}
 for expected in ("max_new_tokens", "do_sample", "temperature", "num_beams", "repetition_penalty", "eos_token_id"):
     assert expected in param_names, f"{expected} має бути в таблиці Common Options"
 print(f"✓ Офіційна таблиця генераційних параметрів: {len(param_names)} параметрів, усі ключові на місці")

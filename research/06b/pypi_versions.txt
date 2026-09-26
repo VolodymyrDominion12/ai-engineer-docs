@@ -1,0 +1,24 @@
+### SOURCE: https://pypi.org/pypi/<PACKAGE>/json
+
+Версії пакетів станом на момент завантаження (поле .info.version кожного пакета).
+
+pgvector                   0.5.0          requires_python=>=3.10
+qdrant-client              1.19.1         requires_python=>=3.10
+ragas                      0.4.3          requires_python=>=3.9
+langchain                  1.4.2          requires_python=<4.0.0,>=3.10.0
+langchain-core             1.6.5          requires_python=<4.0.0,>=3.10.0
+sentence-transformers      6.1.0          requires_python=>=3.10
+rank-bm25                  0.2.2          requires_python=
+numpy                      2.5.3          requires_python=>=3.12
+psycopg                    3.3.6          requires_python=>=3.10
+psycopg2-binary            2.9.13         requires_python=>=3.10
+cohere                     7.1.1          requires_python=<4.0,>=3.10
+transformers               5.17.0         requires_python=>=3.10.0
+fastembed                  0.8.1          requires_python=>=3.10.0
+sqlalchemy                 2.1.1          requires_python=>=3.11
+datasets                   5.0.1          requires_python=>=3.10.0
+scikit-learn               1.9.1          requires_python=>=3.11
+torch                      2.14.0         requires_python=>=3.10
+bm25s                      0.3.11         requires_python=>=3.8
+FlagEmbedding              1.4.2          requires_python=None
+onxxruntime                FAIL HTTPError: HTTP Error 404: Not Found

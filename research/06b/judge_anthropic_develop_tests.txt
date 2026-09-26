@@ -1,0 +1,960 @@
+### SOURCE: https://platform.claude.com/docs/en/test-and-evaluate/develop-tests.md
+
+---
+title: Define success criteria and build evaluations
+url: https://platform.claude.com/docs/en/test-and-evaluate/develop-tests
+description: Define measurable success criteria for your LLM application and build evaluations to test it, from exact match checks to LLM-based grading.
+---
+
+Building a successful LLM-based application starts with clearly defining your success criteria and then designing evaluations to measure performance against them. This cycle is central to prompt engineering.
+
+![Flowchart of prompt engineering: test cases, preliminary prompt, iterative testing and refinement, final validation, ship](https://platform.claude.com/docs/images/how-to-prompt-eng.png)
+
+## Define your success criteria
+
+Good success criteria are:
+
+* **Specific:** Clearly define what you want to achieve. Instead of "good performance," specify "accurate sentiment classification."
+
+* **Measurable:** Use quantitative metrics or well-defined qualitative scales. Numbers provide clarity and scalability, but qualitative measures can be valuable if consistently applied *along* with quantitative measures.
+
+  * Even "hazy" topics such as ethics and safety can be quantified:
+
+    |      | Safety criteria                                                                            |
+    | ---- | ------------------------------------------------------------------------------------------ |
+    | Bad  | Safe outputs                                                                               |
+    | Good | Less than 0.1% of outputs out of 10,000 trials flagged for toxicity by the content filter. |
+
+  <Accordion title="Example metrics and measurement methods">
+    **Quantitative metrics:**
+
+    * Task-specific: F1 score, BLEU score, perplexity
+    * Generic: Accuracy, precision, recall
+    * Operational: Response time (ms), uptime (%)
+
+    **Quantitative methods:**
+
+    * A/B testing: Compare performance against a baseline model or earlier version.
+    * User feedback: Implicit measures like task completion rates.
+    * Edge case analysis: Percentage of edge cases handled without errors.
+
+    **Qualitative scales:**
+
+    * Likert scales: "Rate coherence from 1 (nonsensical) to 5 (perfectly logical)"
+    * Expert rubrics: Linguists rating translation quality on defined criteria
+  </Accordion>
+
+* **Achievable:** Base your targets on industry benchmarks, prior experiments, AI research, or expert knowledge. Your success metrics should not be unrealistic to current frontier model capabilities.
+
+* **Relevant:** Align your criteria with your application's purpose and user needs. Strong citation accuracy might be critical for medical apps but less so for casual chatbots.
+
+<Accordion title="Example task fidelity criteria for sentiment analysis">
+  |      | Criteria                                                                                                                                                                                                                               |
+  | ---- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+  | Bad  | The model should classify sentiments well                                                                                                                                                                                              |
+  | Good | The sentiment analysis model should achieve an F1 score of at least 0.85 (Measurable, Specific) on a held-out test set\* of 10,000 diverse Twitter posts (Relevant), which is a 5% improvement over the current baseline (Achievable). |
+
+  \*More on held-out test sets in the next section.
+</Accordion>
+
+### Common success criteria
+
+Here are some criteria that might be important for your use case. This list is non-exhaustive.
+
+<AccordionGroup>
+  <Accordion title="Task fidelity">
+    How well does the model need to perform on the task? You may also need to consider edge case handling, such as how well the model needs to perform on rare or challenging inputs.
+  </Accordion>
+
+  <Accordion title="Consistency">
+    How similar do the model's responses need to be for similar types of input? If a user asks the same question twice, how important is it that they get semantically similar answers?
+  </Accordion>
+
+  <Accordion title="Relevance and coherence">
+    How well does the model directly address the user's questions or instructions? How important is it for the information to be presented in a logical, easy to follow manner?
+  </Accordion>
+
+  <Accordion title="Tone and style">
+    How well does the model's output style match expectations? How appropriate is its language for the target audience?
+  </Accordion>
+
+  <Accordion title="Privacy preservation">
+    What is a successful metric for how the model handles personal or sensitive information? Can it follow instructions not to use or share certain details?
+  </Accordion>
+
+  <Accordion title="Context utilization">
+    How effectively does the model use provided context? How well does it reference and build upon information given in its history?
+  </Accordion>
+
+  <Accordion title="Latency">
+    What is the acceptable response time for the model? This depends on your application's real-time requirements and user expectations.
+  </Accordion>
+
+  <Accordion title="Price">
+    What is your budget for running the model? Consider factors like the cost for each API call, the size of the model, and the frequency of usage.
+  </Accordion>
+</AccordionGroup>
+
+Most use cases need multidimensional evaluation along several success criteria.
+
+<Accordion title="Example multidimensional criteria for sentiment analysis">
+  |      | Criteria                                                                                                                                                                                                                                                           |
+  | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+  | Bad  | The model should classify sentiments well                                                                                                                                                                                                                          |
+  | Good | On a held-out test set of 10,000 diverse Twitter posts, the sentiment analysis model should achieve: - an F1 score of at least 0.85 - 99.5% of outputs are non-toxic - 90% of errors would cause inconvenience, not egregious error\* - 95% response time \< 200ms |
+
+  \*In reality, you would also define what "inconvenience" and "egregious" mean.
+</Accordion>
+
+***
+
+## Build evaluations
+
+### Eval design principles
+
+1. **Be task-specific:** Design evals that mirror your real-world task distribution. Don't forget to factor in edge cases!
+   <Accordion title="Example edge cases">
+     * Irrelevant or nonexistent input data
+     * Overly long input data or user input
+     * \[Chat use cases] Poor, harmful, or irrelevant user input
+     * Ambiguous test cases where even humans would find it hard to reach an assessment consensus
+   </Accordion>
+2. **Automate when possible:** Structure questions to allow for automated grading (for example, multiple-choice, string match, code-graded, LLM-graded).
+3. **Prioritize volume over quality:** More questions with slightly lower signal automated grading is better than fewer questions with high-quality human hand-graded evals.
+
+### Example evals
+
+<AccordionGroup>
+  <Accordion title="Task fidelity (sentiment analysis) - exact match evaluation">
+    **What it measures:** Exact match evals measure whether the model's output matches a predefined correct answer, typically after normalizing whitespace and case. It's a simple, unambiguous metric that's perfect for tasks with clear-cut, categorical answers like sentiment analysis (positive, negative, neutral).
+
+    **Example eval test cases:** 1,000 tweets with human-labeled sentiments.
+
+    <CodeGroup exclude="shell">
+      ```python Python
+      tweets = [
+          {"text": "This movie was a total waste of time. 👎", "sentiment": "negative"},
+          {"text": "The new album is 🔥! Been on repeat all day.", "sentiment": "positive"},
+          {
+              "text": "I just love it when my flight gets delayed for 5 hours. #bestdayever",
+              "sentiment": "negative",
+          },  # Edge case: Sarcasm
+          {
+              "text": "The movie's plot was terrible, but the acting was phenomenal.",
+              "sentiment": "mixed",
+          },  # Edge case: Mixed sentiment
+          # ... 996 more tweets
+      ]
+
+      client = anthropic.Anthropic()
+
+
+      def get_completion(prompt: str):
+          message = client.messages.create(
+              model="claude-opus-5-5",
+              max_tokens=50,
+              messages=[{"role": "user", "content": prompt}],
+          )
+          return next(block.text for block in message.content if block.type == "text")
+
+
+      def evaluate_exact_match(model_output, correct_answer):
+          return model_output.strip().lower() == correct_answer.lower()
+
+
+      outputs = [
+          get_completion(
+              f"Classify this as 'positive', 'negative', 'neutral', or 'mixed': {tweet['text']}"
+          )
+          for tweet in tweets
+      ]
+      accuracy = sum(
+          evaluate_exact_match(output, tweet["sentiment"])
+          for output, tweet in zip(outputs, tweets)
+      ) / len(tweets)
+      print(f"Sentiment Analysis Accuracy: {accuracy * 100}%")
+      ```
+
+      ```typescript TypeScript
+      const tweets = [
+        { text: "This movie was a total waste of time. 👎", sentiment: "negative" },
+        { text: "The new album is 🔥! Been on repeat all day.", sentiment: "positive" },
+        {
+          text: "I just love it when my flight gets delayed for 5 hours. #bestdayever",
+          sentiment: "negative"
+        }, // Edge case: Sarcasm
+        {
+          text: "The movie's plot was terrible, but the acting was phenomenal.",
+          sentiment: "mixed"
+        } // Edge case: Mixed sentiment
+        // ... 996 more tweets
+      ];
+
+      const client = new Anthropic();
+
+      async function getCompletion(prompt: string): Promise<string> {
+        const message = await client.messages.create({
+          model: "claude-opus-5-5",
+          max_tokens: 50,
+          messages: [{ role: "user", content: prompt }]
+        });
+        const textBlock = message.content.find((block) => block.type === "text");
+        return textBlock ? textBlock.text : "";
+      }
+
+      function evaluateExactMatch(modelOutput: string, correctAnswer: string): boolean {
+        return modelOutput.trim().toLowerCase() === correctAnswer.toLowerCase();
+      }
+
+      let correctCount = 0;
+      for (const tweet of tweets) {
+        const output = await getCompletion(
+          `Classify this as 'positive', 'negative', 'neutral', or 'mixed': ${tweet.text}`
+        );
+        if (evaluateExactMatch(output, tweet.sentiment)) {
+          correctCount++;
+        }
+      }
+      console.log(`Sentiment Analysis Accuracy: ${(correctCount / tweets.length) * 100}%`);
+      ```
+
+      ```csharp C#
+      Tweet[] tweets =
+      [
+          new("This movie was a total waste of time. 👎", "negative"),
+          new("The new album is 🔥! Been on repeat all day.", "positive"),
+          // Edge case: Sarcasm
+          new("I just love it when my flight gets delayed for 5 hours. #bestdayever", "negative"),
+          // Edge case: Mixed sentiment
+          new("The movie's plot was terrible, but the acting was phenomenal.", "mixed"),
+          // ... 996 more tweets
+      ];
+
+      var client = new AnthropicClient();
+
+      async Task<string> GetCompletion(string prompt)
+      {
+          var message = await client.Messages.Create(new MessageCreateParams
+          {
+              Model = Model.ClaudeOpus5_5,
+              MaxTokens = 50,
+              Messages = [new() { Role = Role.User, Content = prompt }],
+          });
+          return ContentText(message);
+      }
+
+      bool EvaluateExactMatch(string modelOutput, string correctAnswer)
+      {
+          return string.Equals(modelOutput.Trim(), correctAnswer, StringComparison.OrdinalIgnoreCase);
+      }
+
+      string ContentText(Message message)
+      {
+          var text = "";
+          foreach (var block in message.Content)
+          {
+              if (block.TryPickText(out var textBlock))
+              {
+                  text += textBlock.Text;
+              }
+          }
+          return text;
+      }
+
+      var correct = 0;
+      foreach (var tweet in tweets)
+      {
+          var output = await GetCompletion(
+              $"Classify this as 'positive', 'negative', 'neutral', or 'mixed': {tweet.Text}");
+          if (EvaluateExactMatch(output, tweet.Sentiment))
+          {
+              correct++;
+          }
+      }
+      Console.WriteLine($"Sentiment Analysis Accuracy: {100.0 * correct / tweets.Length}%");
+
+      record Tweet(string Text, string Sentiment);
+      ```
+
+      ```go Go
+      var client = anthropic.NewClient()
+
+      func contentText(message *anthropic.Message) string {
+      	var text strings.Builder
+      	for _, block := range message.Content {
+      		if textBlock, ok := block.AsAny().(anthropic.TextBlock); ok {
+      			text.WriteString(textBlock.Text)
+      		}
+      	}
+      	return text.String()
+      }
+
+      type tweet struct {
+      	Text      string
+      	Sentiment string
+      }
+
+      var tweets = []tweet{
+      	{"This movie was a total waste of time. 👎", "negative"},
+      	{"The new album is 🔥! Been on repeat all day.", "positive"},
+      	// Edge case: Sarcasm
+      	{"I just love it when my flight gets delayed for 5 hours. #bestdayever", "negative"},
+      	// Edge case: Mixed sentiment
+      	{"The movie's plot was terrible, but the acting was phenomenal.", "mixed"},
+      	// ... 996 more tweets
+      }
+
+      func getCompletion(prompt string) string {
+      	message, err := client.Messages.New(context.Background(), anthropic.MessageNewParams{
+      		Model:     anthropic.ModelClaudeOpus5_5,
+      		MaxTokens: 50,
+      		Messages: []anthropic.MessageParam{
+      			anthropic.NewUserMessage(anthropic.NewTextBlock(prompt)),
+      		},
+      	})
+      	if err != nil {
+      		log.Fatal(err)
+      	}
+      	return contentText(message)
+      }
+
+      func evaluateExactMatch(modelOutput, correctAnswer string) bool {
+      	return strings.EqualFold(strings.TrimSpace(modelOutput), correctAnswer)
+      }
+
+      func main() {
+      	correct := 0
+      	for _, item := range tweets {
+      		output := getCompletion("Classify this as 'positive', 'negative', 'neutral', or 'mixed': " + item.Text)
+      		if evaluateExactMatch(output, item.Sentiment) {
+      			correct++
+      		}
+      	}
+      	fmt.Printf("Sentiment Analysis Accuracy: %.1f%%\n", float64(correct)/float64(len(tweets))*100)
+      }
+      ```
+
+      ```java Java
+      record Tweet(String text, String sentiment) {}
+
+      List<Tweet> tweets = List.of(
+          new Tweet("This movie was a total waste of time. 👎", "negative"),
+          new Tweet("The new album is 🔥! Been on repeat all day.", "positive"),
+          // Edge case: Sarcasm
+          new Tweet("I just love it when my flight gets delayed for 5 hours. #bestdayever", "negative"),
+          // Edge case: Mixed sentiment
+          new Tweet("The movie's plot was terrible, but the acting was phenomenal.", "mixed")
+          // ... 996 more tweets
+      );
+
+      AnthropicClient client = AnthropicOkHttpClient.fromEnv();
+
+      String contentText(Message message) {
+          var text = new StringBuilder();
+          for (var block : message.content()) {
+              block.text().ifPresent(textBlock -> text.append(textBlock.text()));
+          }
+          return text.toString();
+      }
+
+      String getCompletion(String prompt) {
+          var params = MessageCreateParams.builder()
+              .model(Model.CLAUDE_OPUS_5_5)
+              .maxTokens(50L)
+              .addUserMessage(prompt)
+              .build();
+          return contentText(client.messages().create(params));
+      }
+
+      boolean evaluateExactMatch(String modelOutput, String correctAnswer) {
+          return modelOutput.strip().equalsIgnoreCase(correctAnswer);
+      }
+
+      void main() {
+          int correct = 0;
+          for (var tweet : tweets) {
+              var output = getCompletion(
+                  "Classify this as 'positive', 'negative', 'neutral', or 'mixed': " + tweet.text());
+              if (evaluateExactMatch(output, tweet.sentiment())) {
+                  correct++;
+              }
+          }
+          IO.println("Sentiment Analysis Accuracy: " + (100.0 * correct / tweets.size()) + "%");
+      }
+      ```
+
+      ```php PHP
+      $client = new Client();
+
+      $tweets = [
+          ['text' => 'This movie was a total waste of time. 👎', 'sentiment' => 'negative'],
+          ['text' => 'The new album is 🔥! Been on repeat all day.', 'sentiment' => 'positive'],
+          // Edge case: Sarcasm
+          ['text' => 'I just love it when my flight gets delayed for 5 hours. #bestdayever', 'sentiment' => 'negative'],
+          // Edge case: Mixed sentiment
+          ['text' => "The movie's plot was terrible, but the acting was phenomenal.", 'sentiment' => 'mixed'],
+          // ... 996 more tweets
+      ];
+
+      function getCompletion(Client $client, string $prompt): string
+      {
+          $message = $client->messages->create(
+              model: Model::CLAUDE_OPUS_5_5,
+              maxTokens: 50,
+              messages: [
+                  [
+                      'role' => 'user',
+                      'content' => $prompt,
+                  ],
+              ],
+          );
+          return contentText($message);
+      }
+
+      function evaluateExactMatch(string $modelOutput, string $correctAnswer): bool
+      {
+          return strtolower(trim($modelOutput)) === strtolower($correctAnswer);
+      }
+
+      function contentText($message): string
+      {
+          $text = '';
+          foreach ($message->content as $block) {
+              if ($block instanceof \Anthropic\Messages\TextBlock) {
+                  $text .= $block->text;
+              }
+          }
+          return $text;
+      }
+
+      $correct = 0;
+      foreach ($tweets as $tweet) {
+          $output = getCompletion(
+              $client,
+              "Classify this as 'positive', 'negative', 'neutral', or 'mixed': {$tweet['text']}",
+          );
+          if (evaluateExactMatch($output, $tweet['sentiment'])) {
+              $correct++;
+          }
+      }
+      echo 'Sentiment Analysis Accuracy: ' . (100 * $correct / count($tweets)) . '%' . PHP_EOL;
+      ```
+
+      ```ruby Ruby
+      client = Anthropic::Client.new
+
+      tweets = [
+        { text: "This movie was a total waste of time. 👎", sentiment: "negative" },
+        { text: "The new album is 🔥! Been on repeat all day.", sentiment: "positive" },
+        # Edge case: Sarcasm
+        { text: "I just love it when my flight gets delayed for 5 hours. #bestdayever", sentiment: "negative" },
+        # Edge case: Mixed sentiment
+        { text: "The movie's plot was terrible, but the acting was phenomenal.", sentiment: "mixed" }
+        # ... 996 more tweets
+      ]
+
+      def content_text(message)
+        message.content.filter_map { |block| block.text if block.type == :text }.join
+      end
+
+      def get_completion(client, prompt)
+        message = client.messages.create(
+          model: Anthropic::Model::CLAUDE_OPUS_5_5,
+          max_tokens: 50,
+          messages: [
+            {
+              role: "user",
+              content: prompt
+            }
+          ]
+        )
+        content_text(message)
+      end
+
+      def evaluate_exact_match(model_output, correct_answer)
+        model_output.strip.downcase == correct_answer.downcase
+      end
+
+      correct = tweets.count do |tweet|
+        output = get_completion(
+          client,
+          "Classify this as 'positive', 'negative', 'neutral', or 'mixed': #{tweet[:text]}"
+        )
+        evaluate_exact_match(output, tweet[:sentiment])
+      end
+      puts "Sentiment Analysis Accuracy: #{100.0 * correct / tweets.length}%"
+      ```
+    </CodeGroup>
+  </Accordion>
+
+  <Accordion title="Consistency (FAQ bot) - cosine similarity evaluation">
+    **What it measures:** Cosine similarity measures the similarity between two vectors (in this case, sentence embeddings of the model's output using [Sentence-BERT (SBERT)](https://sbert.net/)) by computing the cosine of the angle between them. Values closer to 1 indicate higher similarity. It's ideal for evaluating consistency because similar questions should yield semantically similar answers, even if the wording varies.
+
+    **Example eval test cases:** 50 groups with a few paraphrased versions each.
+
+    <CodeGroup exclude="shell">
+      ```python Python
+      from sentence_transformers import SentenceTransformer
+      import numpy as np
+      # ...
+      faq_variations = [
+          {
+              "questions": [
+                  "What's your return policy?",
+                  "How can I return an item?",
+                  "Wut's yur retrn polcy?",
+              ],
+              "answer": "Our return policy allows...",
+          },  # Edge case: Typos
+          {
+              "questions": [
+                  "I bought something last week, and it's not really what I expected, so I was wondering if maybe I could possibly return it?",
+                  "I read online that your policy is 30 days but that seems like it might be out of date because the website was updated six months ago, so I'm wondering what exactly is your current policy?",
+              ],
+              "answer": "Our return policy allows...",
+          },  # Edge case: Long, rambling question
+          {
+              "questions": [
+                  "I'm Jane's cousin, and she said you guys have great customer service. Can I return this?",
+                  "Reddit told me that contacting customer service this way was the fastest way to get an answer. I hope they're right! What is the return window for a jacket?",
+              ],
+              "answer": "Our return policy allows...",
+          },  # Edge case: Irrelevant info
+          # ... 47 more FAQs
+      ]
+
+      client = anthropic.Anthropic()
+
+
+      def get_completion(prompt: str):
+          message = client.messages.create(
+              model="claude-opus-5-5",
+              max_tokens=2048,
+              messages=[{"role": "user", "content": prompt}],
+          )
+          return next(block.text for block in message.content if block.type == "text")
+
+
+      def evaluate_cosine_similarity(outputs):
+          model = SentenceTransformer("all-MiniLM-L6-v2")
+          embeddings = model.encode(outputs)
+
+          norms = np.linalg.norm(embeddings, axis=1)
+          cosine_similarities = np.dot(embeddings, embeddings.T) / np.outer(norms, norms)
+          return np.mean(cosine_similarities)
+
+
+      for faq in faq_variations:
+          outputs = [get_completion(question) for question in faq["questions"]]
+          similarity_score = evaluate_cosine_similarity(outputs)
+          print(f"FAQ Consistency Score: {similarity_score * 100}%")
+      ```
+
+      ```typescript TypeScript
+      import { pipeline } from "@huggingface/transformers";
+
+      const faqVariations = [
+        {
+          questions: [
+            "What's your return policy?",
+            "How can I return an item?",
+            "Wut's yur retrn polcy?"
+          ],
+          answer: "Our return policy allows..."
+        }, // Edge case: Typos
+        {
+          questions: [
+            "I bought something last week, and it's not really what I expected, so I was wondering if maybe I could possibly return it?",
+            "I read online that your policy is 30 days but that seems like it might be out of date because the website was updated six months ago, so I'm wondering what exactly is your current policy?"
+          ],
+          answer: "Our return policy allows..."
+        }, // Edge case: Long, rambling question
+        {
+          questions: [
+            "I'm Jane's cousin, and she said you guys have great customer service. Can I return this?",
+            "Reddit told me that contacting customer service this way was the fastest way to get an answer. I hope they're right! What is the return window for a jacket?"
+          ],
+          answer: "Our return policy allows..."
+        } // Edge case: Irrelevant info
+        // ... 47 more FAQs
+      ];
+
+      const client = new Anthropic();
+
+      async function getCompletion(prompt: string): Promise<string> {
+        const message = await client.messages.create({
+          model: "claude-opus-5-5",
+          max_tokens: 2048,
+          messages: [{ role: "user", content: prompt }]
+        });
+        const textBlock = message.content.find((block) => block.type === "text");
+        return textBlock ? textBlock.text : "";
+      }
+
+      async function evaluateCosineSimilarity(outputs: string[]): Promise<number> {
+        const extractor = await pipeline("feature-extraction", "Xenova/all-MiniLM-L6-v2");
+        const embeddings = (await extractor(outputs, { pooling: "mean", normalize: true })).tolist();
+
+        let total = 0;
+        for (const embeddingA of embeddings) {
+          for (const embeddingB of embeddings) {
+            // Vectors are normalized, so cosine similarity is the dot product
+            total += embeddingA.reduce(
+              (sum: number, value: number, i: number) => sum + value * embeddingB[i],
+              0
+            );
+          }
+        }
+        return total / (embeddings.length * embeddings.length);
+      }
+
+      for (const faq of faqVariations) {
+        const outputs: string[] = [];
+        for (const question of faq.questions) {
+          outputs.push(await getCompletion(question));
+        }
+        const similarityScore = await evaluateCosineSimilarity(outputs);
+        console.log(`FAQ Consistency Score: ${similarityScore * 100}%`);
+      }
+      ```
+
+      ```csharp C#
+      // Sentence-embedding models are not available as a native C# library. See the Python or TypeScript tab for this eval recipe.
+      ```
+
+      ```go Go
+      // Sentence-embedding models are not available as a native Go library. See the Python or TypeScript tab for this eval recipe.
+      ```
+
+      ```java Java
+      // Sentence-embedding models are not available as a native Java library. See the Python or TypeScript tab for this eval recipe.
+      ```
+
+      ```php PHP
+      // Sentence-embedding models are not available as a native PHP library. See the Python or TypeScript tab for this eval recipe.
+      ```
+
+      ```ruby Ruby
+      # Sentence-embedding models are not available as a native Ruby library. See the Python or TypeScript tab for this eval recipe.
+      ```
+    </CodeGroup>
+  </Accordion>
+
+  <Accordion title="Relevance and coherence (summarization) - ROUGE-L evaluation">
+    **What it measures:** ROUGE-L (Recall-Oriented Understudy for Gisting Evaluation - Longest Common Subsequence) evaluates the quality of generated summaries. It measures the length of the longest common subsequence between the candidate and reference summaries. High ROUGE-L scores indicate that the generated summary captures key information in a coherent order.
+
+    **Example eval test cases:** 200 articles with reference summaries.
+
+    <CodeGroup exclude="shell">
+      ```python Python
+      from rouge import Rouge
+      # ...
+      articles = [
+          {
+              "text": "In a groundbreaking study, researchers at MIT...",
+              "summary": "MIT scientists discover a new antibiotic...",
+          },
+          {
+              "text": "Jane Doe, a local hero, made headlines last week for saving... In city hall news, the budget... Meteorologists predict...",
+              "summary": "Community celebrates local hero Jane Doe while city grapples with budget issues.",
+          },  # Edge case: Multitopic
+          {
+              "text": "You won't believe what this celebrity did! ... extensive charity work ...",
+              "summary": "Celebrity's extensive charity work surprises fans",
+          },  # Edge case: Misleading title
+          # ... 197 more articles
+      ]
+
+      client = anthropic.Anthropic()
+
+
+      def get_completion(prompt: str):
+          message = client.messages.create(
+              model="claude-opus-5-5",
+              max_tokens=1024,
+              messages=[{"role": "user", "content": prompt}],
+          )
+          return next(block.text for block in message.content if block.type == "text")
+
+
+      def evaluate_rouge_l(model_output, true_summary):
+          rouge = Rouge()
+          scores = rouge.get_scores(model_output, true_summary)
+          return scores[0]["rouge-l"]["f"]  # ROUGE-L F1 score
+
+
+      outputs = [
+          get_completion(f"Summarize this article in 1-2 sentences:\n\n{article['text']}")
+          for article in articles
+      ]
+      relevance_scores = [
+          evaluate_rouge_l(output, article["summary"])
+          for output, article in zip(outputs, articles)
+      ]
+      print(f"Average ROUGE-L F1 Score: {sum(relevance_scores) / len(relevance_scores)}")
+      ```
+
+      ```typescript TypeScript
+      const articles = [
+        {
+          text: "In a groundbreaking study, researchers at MIT...",
+          summary: "MIT scientists discover a new antibiotic..."
+        },
+        {
+          text: "Jane Doe, a local hero, made headlines last week for saving... In city hall news, the budget... Meteorologists predict...",
+          summary: "Community celebrates local hero Jane Doe while city grapples with budget issues."
+        }, // Edge case: Multitopic
+        {
+          text: "You won't believe what this celebrity did! ... extensive charity work ...",
+          summary: "Celebrity's extensive charity work surprises fans"
+        } // Edge case: Misleading title
+        // ... 197 more articles
+      ];
+
+      const client = new Anthropic();
+
+      async function getCompletion(prompt: string): Promise<string> {
+        const message = await client.messages.create({
+          model: "claude-opus-5-5",
+          max_tokens: 1024,
+          messages: [{ role: "user", content: prompt }]
+        });
+        const textBlock = message.content.find((block) => block.type === "text");
+        return textBlock ? textBlock.text : "";
+      }
+
+      // ROUGE-L measures the longest common subsequence (LCS) of words between the
+      // candidate and reference summaries, reported here as an F1 score. Tokenization
+      // is simplified to whitespace words; scores may differ from the Python rouge library.
+      function rougeL(candidate: string, reference: string): number {
+        const candidateWords = candidate.toLowerCase().trim().split(/\s+/);
+        const referenceWords = reference.toLowerCase().trim().split(/\s+/);
+
+        const lcsLengths: number[][] = Array.from({ length: candidateWords.length + 1 }, () =>
+          new Array(referenceWords.length + 1).fill(0)
+        );
+        for (const [i, candidateWord] of candidateWords.entries()) {
+          for (const [j, referenceWord] of referenceWords.entries()) {
+            lcsLengths[i + 1][j + 1] =
+              candidateWord === referenceWord
+                ? lcsLengths[i][j] + 1
+                : Math.max(lcsLengths[i][j + 1], lcsLengths[i + 1][j]);
+          }
+        }
+        const lcs = lcsLengths[candidateWords.length][referenceWords.length];
+
+        if (lcs === 0) return 0;
+        const precision = lcs / candidateWords.length;
+        const recall = lcs / referenceWords.length;
+        return (2 * precision * recall) / (precision + recall);
+      }
+
+      const relevanceScores: number[] = [];
+      for (const article of articles) {
+        const output = await getCompletion(
+          `Summarize this article in 1-2 sentences:\n\n${article.text}`
+        );
+        relevanceScores.push(rougeL(output, article.summary));
+      }
+      const averageScore =
+        relevanceScores.reduce((sum, score) => sum + score, 0) / relevanceScores.length;
+      console.log(`Average ROUGE-L F1 Score: ${averageScore}`);
+      ```
+
+      ```csharp C#
+      using System.Text.RegularExpressions;
+      // ...
+      Article[] articles =
+      [
+          new("In a groundbreaking study, researchers at MIT...",
+              "MIT scientists discover a new antibiotic..."),
+          // Edge case: Multitopic
+          new("Jane Doe, a local hero, made headlines last week for saving... In city hall news, the budget... Meteorologists predict...",
+              "Community celebrates local hero Jane Doe while city grapples with budget issues."),
+          // Edge case: Misleading title
+          new("You won't believe what this celebrity did! ... extensive charity work ...",
+              "Celebrity's extensive charity work surprises fans"),
+          // ... 197 more articles
+      ];
+
+      var client = new AnthropicClient();
+
+      async Task<string> GetCompletion(string prompt)
+      {
+          var message = await client.Messages.Create(new MessageCreateParams
+          {
+              Model = Model.ClaudeOpus5_5,
+              MaxTokens = 1024,
+              Messages = [new() { Role = Role.User, Content = prompt }],
+          });
+          return ContentText(message);
+      }
+
+      // ROUGE-L measures the longest common subsequence (LCS) of words between the
+      // candidate and reference summaries, reported here as an F1 score. Tokenization
+      // is simplified to whitespace words; scores may differ from the Python rouge library.
+      double RougeL(string candidate, string reference)
+      {
+          var candidateWords = Regex.Split(candidate.ToLowerInvariant().Trim(), @"\s+");
+          var referenceWords = Regex.Split(reference.ToLowerInvariant().Trim(), @"\s+");
+
+          var lcsLengths = new int[candidateWords.Length + 1, referenceWords.Length + 1];
+          for (var i = 0; i < candidateWords.Length; i++)
+          {
+              for (var j = 0; j < referenceWords.Length; j++)
+              {
+                  lcsLengths[i + 1, j + 1] = candidateWords[i] == referenceWords[j]
+                      ? lcsLengths[i, j] + 1
+                      : Math.Max(lcsLengths[i, j + 1], lcsLengths[i + 1, j]);
+              }
+          }
+          var lcs = lcsLengths[candidateWords.Length, referenceWords.Length];
+
+          if (lcs == 0)
+          {
+              return 0;
+          }
+          var precision = (double)lcs / candidateWords.Length;
+          var recall = (double)lcs / referenceWords.Length;
+          return 2 * precision * recall / (precision + recall);
+      }
+
+      string ContentText(Message message)
+      {
+          var text = "";
+          foreach (var block in message.Content)
+          {
+              if (block.TryPickText(out var textBlock))
+              {
+                  text += textBlock.Text;
+              }
+          }
+          return text;
+      }
+
+      var relevanceScores = new List<double>();
+      foreach (var article in articles)
+      {
+          var output = await GetCompletion($"Summarize this article in 1-2 sentences:\n\n{article.Text}");
+          relevanceScores.Add(RougeL(output, article.Summary));
+      }
+      Console.WriteLine($"Average ROUGE-L F1 Score: {relevanceScores.Average()}");
+
+      record Article(string Text, string Summary);
+      ```
+
+      ```go Go
+      var client = anthropic.NewClient()
+
+      func contentText(message *anthropic.Message) string {
+      	var text strings.Builder
+      	for _, block := range message.Content {
+      		if textBlock, ok := block.AsAny().(anthropic.TextBlock); ok {
+      			text.WriteString(textBlock.Text)
+      		}
+      	}
+      	return text.String()
+      }
+
+      type article struct {
+      	Text    string
+      	Summary string
+      }
+
+      var articles = []article{
+      	{
+      		"In a groundbreaking study, researchers at MIT...",
+      		"MIT scientists discover a new antibiotic...",
+      	},
+      	// Edge case: Multitopic
+      	{
+      		"Jane Doe, a local hero, made headlines last week for saving... In city hall news, the budget... Meteorologists predict...",
+      		"Community celebrates local hero Jane Doe while city grapples with budget issues.",
+      	},
+      	// Edge case: Misleading title
+      	{
+      		"You won't believe what this celebrity did! ... extensive charity work ...",
+      		"Celebrity's extensive charity work surprises fans",
+      	},
+      	// ... 197 more articles
+      }
+
+      func getCompletion(prompt string) string {
+      	message, err := client.Messages.New(context.Background(), anthropic.MessageNewParams{
+      		Model:     anthropic.ModelClaudeOpus5_5,
+      		MaxTokens: 1024,
+      		Messages: []anthropic.MessageParam{
+      			anthropic.NewUserMessage(anthropic.NewTextBlock(prompt)),
+      		},
+      	})
+      	if err != nil {
+      		log.Fatal(err)
+      	}
+      	return contentText(message)
+      }
+
+      // ROUGE-L measures the longest common subsequence (LCS) of words between the
+      // candidate and reference summaries, reported here as an F1 score. Tokenization
+      // is simplified to whitespace words; scores may differ from the Python rouge library.
+      func rougeL(candidate, reference string) float64 {
+      	candidateWords := strings.Fields(strings.ToLower(candidate))
+      	referenceWords := strings.Fields(strings.ToLower(reference))
+
+      	lcsLengths := make([][]int, len(candidateWords)+1)
+      	for i := range lcsLengths {
+      		lcsLengths[i] = make([]int, len(referenceWords)+1)
+      	}
+      	for i, candidateWord := range candidateWords {
+      		for j, referenceWord := range referenceWords {
+      			if candidateWord == referenceWord {
+      				lcsLengths[i+1][j+1] = lcsLengths[i][j] + 1
+      			} else {
+      				lcsLengths[i+1][j+1] = max(lcsLengths[i][j+1], lcsLengths[i+1][j])
+      			}
+      		}
+      	}
+      	lcs := lcsLengths[len(candidateWords)][len(referenceWords)]
+
+      	if lcs == 0 {
+      		return 0
+      	}
+      	precision := float64(lcs) / float64(len(candidateWords))
+      	recall := float64(lcs) / float64(len(referenceWords))
+      	return 2 * precision * recall / (precision + recall)
+      }
+
+      func main() {
+      	var relevanceScores []float64
+      	for _, item := range articles {
+      		output := getCompletion("Summarize this article in 1-2 sentences:\n\n" + item.Text)
+      		relevanceScores = append(relevanceScores, rougeL(output, item.Summary))
+      	}
+      	total := 0.0
+      	for _, score := range relevanceScores {
+      		total += score
+      	}
+      	fmt.Println("Average ROUGE-L F1 Score:", total/float64(len(relevanceScores)))
+      }
+      ```
+
+      ```java Java
+      record Article(String text, String summary) {}
+
+      List<Article> articles = List.of(
+          new Article(
+              "In a groundbreaking study, researchers at MIT...",
+              "MIT scientists discover a new antibiotic..."),
+          // Edge case: Multitopic
+          new Article(
+              "Jane Doe, a local hero, made headlines last week for saving... In city hall news, the budget... Meteorologists predict...",
+              "Community celebrates local hero Jane Doe while city grapples with budget issues."),
+          // Edge case: Misleading title
+          new Article(
+              "You won't believe what this celebrity did! ... extensive charity work ...",
+              "Celebrity's extensive charity work surprises fans")
+          // ... 197 more articles
+      );
+
+      AnthropicClient client = AnthropicOkHttpClient.fromEnv();
+
+      Str

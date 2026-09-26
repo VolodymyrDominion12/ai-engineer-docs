@@ -1,0 +1,76 @@
+### SOURCE: https://pypi.org/pypi/{qdrant-client,sentence-transformers,fastembed,FlagEmbedding,hnswlib,pgvector,mteb,transformers}/json
+
+{
+ "qdrant-client": {
+  "version": "1.19.1",
+  "upload_time": "2026-09-16T06:43:12",
+  "requires_python": ">=3.10",
+  "summary": "Client library for the Qdrant vector search engine",
+  "license": "Apache-2.0",
+  "home_page": null,
+  "n_releases": 126
+ },
+ "sentence-transformers": {
+  "version": "6.1.0",
+  "upload_time": "2026-09-18T10:44:22",
+  "requires_python": ">=3.10",
+  "summary": "Embeddings, Retrieval, and Reranking",
+  "license": "",
+  "home_page": null,
+  "n_releases": 84
+ },
+ "fastembed": {
+  "version": "0.8.1",
+  "upload_time": "2026-09-22T20:01:22",
+  "requires_python": ">=3.10.0",
+  "summary": "Fast, light, accurate library built for retrieval embedding generation",
+  "license": "Apache-2.0",
+  "home_page": null,
+  "n_releases": 45
+ },
+ "FlagEmbedding": {
+  "version": "1.4.2",
+  "upload_time": "2026-08-24T02:57:20",
+  "requires_python": null,
+  "summary": "FlagEmbedding",
+  "license": "",
+  "home_page": "https://github.com/FlagOpen/FlagEmbedding",
+  "n_releases": 33
+ },
+ "hnswlib": {
+  "version": "0.8.0",
+  "upload_time": "2023-12-03T04:16:17",
+  "requires_python": "",
+  "summary": "hnswlib",
+  "license": "",
+  "home_page": "https://github.com/yurymalkov/hnsw",
+  "n_releases": 11
+ },
+ "pgvector": {
+  "version": "0.5.0",
+  "upload_time": "2026-07-06T18:27:26",
+  "requires_python": ">=3.10",
+  "summary": "pgvector support for Python",
+  "license": "",
+  "home_page": null,
+  "n_releases": 26
+ },
+ "mteb": {
+  "version": "2.21.8",
+  "upload_time": "2026-09-23T20:41:05",
+  "requires_python": "<3.15,>=3.10",
+  "summary": "Massive Text Embedding Benchmark",
+  "license": "",
+  "home_page": null,
+  "n_releases": 807
+ },
+ "transformers": {
+  "version": "5.17.0",
+  "upload_time": "2026-09-09T15:39:53",
+  "requires_python": ">=3.10.0",
+  "summary": "Transformers: the model-definition framework for state-of-the-art machine learning models in text, vision, audio, and multimodal models, for both inference and training.",
+  "license": "Apache 2.0 License",
+  "home_page": "https://github.com/huggingface/transformers",
+  "n_releases": 242
+ }
+}

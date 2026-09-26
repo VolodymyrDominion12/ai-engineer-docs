@@ -28,3 +28,9 @@ Thumbs.db
 *.egg-info/
 build/
 dist/
+
+# Згенеровані артефакти — не дублюють джерело в git.
+# BOOK.md збирається з sections/ командою: python3 tools/build_book.py
+BOOK.md
+*.epub
+*.docx

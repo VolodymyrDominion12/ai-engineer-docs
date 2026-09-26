@@ -1,0 +1,100 @@
+### SOURCE: https://docs.cohere.com/docs/reranking-best-practices.md
+
+> For clean Markdown of any page, append .md to the page URL.
+> For a complete documentation index, see https://docs.cohere.com/llms.txt.
+> For AI client integration (Claude Code, Cursor, etc.), connect to the MCP server at https://docs.cohere.com/_mcp/server.
+
+# Best Practices for using Rerank
+
+> Tips for optimal endpoint performance, including constraints on the number of documents, tokens per document, and tokens per query.
+
+## Optimizing Performance
+
+In the following tables, you'll find recommendations for getting the best performance out of Rerank v4.0, v3.5, and v3.0.
+
+| Constraint                    | Minimum | Maximum                                                                          | Default Value |
+| ----------------------------- | ------- | -------------------------------------------------------------------------------- | :------------ |
+| Number of Documents           | 1       | 10,000                                                                           | N/A           |
+| Max Number of Chunks          | 1       | N/A                                                                              | 1             |
+| Number of Tokens per Document | 1       | N/A (see [below](/docs/reranking-best-practices#document-chunking)for more info) | N/A           |
+| Number of Tokens per Query    | 1       | 2048                                                                             | N/A           |
+
+## Document Chunking
+
+Cohere's Rerank models follow a particular procedure to chunk documents, which will look something like this:
+
+* Take the context window;
+* Subtract the reserved tokens (the number of reserved tokens changes per model)
+
+For `rerank-v4.0` (both 'pro' and 'fast'), the model breaks documents into 32,764-token chunks (this is the context length of 32,768 minus four special, reserved tokens.) For example, if your query is 100 tokens and your document is 100,000 tokens, your document will be broken into the following chunks:
+
+1. `relevance_score_1 = <padding_tokens, query[0,99], document[0,32663]>`
+2. `relevance_score_2 = <padding_tokens, query[0,99], document[32664,65327]>`
+3. `relevance_score_3 = <padding_tokens, query[0,99], document[65328,97990]>`
+4. `relevance_score_4 = <padding_tokens, query[0,99], document[97991,99999]>`
+5. `relevance_score = max(relevance_score_1, relevance_score_2, relevance_score_3, relevance_score_4)`
+
+> **Note**
+>
+> A context length of 32,768 corresponds to about \~48-50 pages, so it is longer than most documents you'll upload. This means that the `rerank-v4.0` models will be looking at entire documents as it chooses its rankings.
+
+For `rerank-v3.5` and `rerank-v3.0`, the process is the same except the models break documents into 4093 token chunks; if your query is 100 tokens and your document is 10,000 tokens, for example, it will be broken into the following chunks:
+
+1. `relevance_score_1 = <padding_tokens, query[0,99], document[0,3992]>`
+2. `relevance_score_2 = <padding_tokens, query[0,99], document[3993,7985]>`
+3. `relevance_score_3 = <padding_tokens, query[0,99], document[7986,9999]>`
+4. `relevance_score = max(relevance_score_1, relevance_score_2, relevance_score_3)`
+
+If you would like more control over how chunking is done, we recommend that you chunk your documents yourself.
+
+## Max Number of Documents
+
+When using rerank-v4.0-pro, rerank-v4.0-fast, rerank-v3.5 and rerank-v3.0 models, the endpoint will throw an error if the user attempts to pass more than 10,000 documents at a time. The maximum number of documents that can be passed to the endpoint is calculated with the following inequality: Number of documents \* max\_chunks\_per\_doc >10,000.
+
+If Number of documents \* max\_chunks\_per\_doc exceeds 10,000, the endpoint will return an error. By default, the max\_chunks\_per\_doc is set to 1 for rerank models.
+
+## Queries
+
+Our `rerank-v4.0` models (both 'pro' and 'fast') are trained with a context length of 32,768 tokens. The model takes both the *query* and the *document* into account when calculating against this limit, and the query can account for up to half of the full context length. If your query is larger than 16,384 tokens, in other words, it will be truncated to the first 16,384 tokens (leaving the other 16,384 for the document(s)).
+
+Our `rerank-v3.5` and `rerank-v3.0` models, are trained with a context length of 4096 tokens, so the process is the same while the math is different. If your query is larger than 2048 token, it will be truncated to the first 2048 tokens (leaving the other 2048 for the document(s)).
+
+## Structured Data Support
+
+Our `rerank-v4.0-pro`, `rerank-v4.0-fast`, `rerank-v3.5` and `rerank-v3.0` models support reranking structured data formatted as a list of YAML strings. Note that since long document strings get truncated, the order of the keys is especially important. When constructing the YAML string from a dictionary, make sure to maintain the order. In Python that is done by setting `sort_keys=False` when using `yaml.dump`.
+
+Example:
+
+```python
+import yaml
+
+docs = [
+    {
+        "Title": "How to fix a dishwasher",
+        "Author": "John Smith",
+        "Date": "August 1st 2023",
+        "Content": "Fixing a dishwasher depends on the specific problem you're facing. Here are some common issues and their potential solutions:....",
+    },
+    {
+        "Title": "How to fix a leaky sink",
+        "Date": "July 25th 2024",
+        "Content": "Fixing a leaky sink will depend on the source of the leak. Here are general steps you can take to address common types of sink leaks:.....",
+    },
+]
+
+yaml_docs = [yaml.dump(doc, sort_keys=False) for doc in docs]
+```
+
+## Interpreting Results
+
+The most important output from the [Rerank API endpoint](/reference/rerank-1) is the absolute rank exposed in the response object. The score is query dependent, and could be higher or lower depending on the query and passages sent in.
+
+Relevance scores are normalized to be in the range `[0, 1]`. Scores close to `1` indicate a high relevance to the query, and scores closer to `0` indicate low relevance. This is used for *ranking* purposes, but be careful about how you interepret the actual numbers--you can't assume that a document with a relevance score of `0.9109375` is *twice* as relevant as one with a relevance score of `0.04421997`.
+
+To find a threshold on the scores to determine whether a document is relevant or not, we recommend going through the following process:
+
+* Select a set of 30-50 representative queries `Q=[q_0, … q_n]` from your domain.
+* For each query provide a document that is considered borderline relevant to the query for your specific use case, and create a list of (query, document) pairs: `sample_inputs=[(q_0, d_0), …, (q_n, d_n)]` .
+* Pass all tuples in `sample_inputs` through the rerank endpoint in a loop, and gather relevance scores `sample_scores=[s0, ..., s_n]`.
+
+The average of `sample_scores` can then be used as a reference when deciding a threshold for filtering out irrelevant documents.

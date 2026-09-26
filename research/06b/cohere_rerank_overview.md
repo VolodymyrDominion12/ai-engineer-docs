@@ -1,0 +1,346 @@
+### SOURCE: https://docs.cohere.com/docs/rerank-overview.md
+
+> For clean Markdown of any page, append .md to the page URL.
+> For a complete documentation index, see https://docs.cohere.com/llms.txt.
+> For AI client integration (Claude Code, Cursor, etc.), connect to the MCP server at https://docs.cohere.com/_mcp/server.
+
+# An Overview of Cohere's Rerank Model
+
+> This page describes how Cohere's Rerank models work.
+
+## How Rerank Works
+
+The [Rerank API endpoint](/reference/rerank-1), powered by the [Rerank models](/v2/docs/rerank), is a simple and very powerful tool for semantic search. Given a `query` and a list of `documents`, Rerank indexes the documents from most to least semantically relevant to the query.
+
+## Get Started
+
+### Example with Texts
+
+In the example below, we use the [Rerank API endpoint](/reference/rerank-1) to index the list of `documents` from most to least relevant to the query `"What is the capital of the United States?"`.
+
+**Request**
+
+In this example, the documents are being passed in as a list of strings:
+
+**`PYTHON`**
+
+```python PYTHON
+import cohere
+
+co = cohere.ClientV2()
+
+query = "What is the capital of the United States?"
+docs = [
+    "Carson City is the capital city of the American state of Nevada. At the 2010 United States Census, Carson City had a population of 55,274.",
+    "The Commonwealth of the Northern Mariana Islands is a group of islands in the Pacific Ocean that are a political division controlled by the United States. Its capital is Saipan.",
+    "Charlotte Amalie is the capital and largest city of the United States Virgin Islands. It has about 20,000 people. The city is on the island of Saint Thomas.",
+    "Washington, D.C. (also known as simply Washington or D.C., and officially as the District of Columbia) is the capital of the United States. It is a federal district. The President of the USA and many major national government offices are in the territory. This makes it the political center of the United States of America.",
+    "Capital punishment has existed in the United States since before the United States was a country. As of 2017, capital punishment is legal in 30 of the 50 states. The federal government (including the United States military) also uses capital punishment.",
+]
+
+results = co.rerank(
+    model="rerank-v4.0-pro", query=query, documents=docs, top_n=5
+)
+
+```
+
+**`cURL`**
+
+```bash cURL
+curl --request POST \
+  --url https://api.cohere.ai/v2/rerank \
+  --header 'accept: application/json' \
+  --header 'content-type: application/json' \
+  --header "Authorization: bearer $CO_API_KEY" \
+  --data '{
+    "model": "rerank-v4.0-pro",
+    "query": "What is the capital of the United States?",
+    "documents": [
+      "Carson City is the capital city of the American state of Nevada. At the 2010 United States Census, Carson City had a population of 55,274.",
+      "The Commonwealth of the Northern Mariana Islands is a group of islands in the Pacific Ocean that are a political division controlled by the United States. Its capital is Saipan.",
+      "Charlotte Amalie is the capital and largest city of the United States Virgin Islands. It has about 20,000 people. The city is on the island of Saint Thomas.",
+      "Washington, D.C. (also known as simply Washington or D.C., and officially as the District of Columbia) is the capital of the United States. It is a federal district. The President of the USA and many major national government offices are in the territory. This makes it the political center of the United States of America.",
+      "Capital punishment has existed in the United States since before the United States was a country. As of 2017, capital punishment is legal in 30 of the 50 states. The federal government (including the United States military) also uses capital punishment."
+    ],
+    "top_n": 5
+  }'
+```
+
+We'll get back a `V2RerankResponse` object that will look like this:
+
+```python
+V2RerankResponse(
+    id="2104ccd0-74b5-4951-9bb1-cc543b26720f",
+    results=[
+        V2RerankResponseResultsItem(
+            index=3, relevance_score=0.943264
+        ),
+        V2RerankResponseResultsItem(
+            index=2, relevance_score=0.62209207
+        ),
+        V2RerankResponseResultsItem(
+            index=1, relevance_score=0.6054258
+        ),
+        V2RerankResponseResultsItem(
+            index=0, relevance_score=0.59040135
+        ),
+        V2RerankResponseResultsItem(
+            index=4, relevance_score=0.4664567
+        ),
+    ],
+    meta=ApiMeta(
+        api_version=ApiMetaApiVersion(
+            version="2", is_deprecated=None, is_experimental=None
+        ),
+        billed_units=ApiMetaBilledUnits(
+            images=None,
+            input_tokens=None,
+            output_tokens=None,
+            search_units=1.0,
+            classifications=None,
+        ),
+        tokens=None,
+        cached_tokens=None,
+        warnings=None,
+    ),
+)
+```
+
+Note that the `index` works as it does in Python, with `index=0` being the first document. Also, the `V2RerankResponse` object will be more compact, the example above was reformatted to make reading easier.
+
+### Example with Structured Data
+
+If your documents contain structured data, for best performance we recommend formatting them as YAML strings.
+
+**Request**
+
+**`PYTHON`**
+
+```python PYTHON
+import yaml
+import cohere
+
+co = cohere.ClientV2()
+
+query = "What is the capital of the United States?"
+docs = [
+    {
+        "Title": "Facts about Carson City",
+        "Content": "Carson City is the capital city of the American state of Nevada. At the 2010 United States Census, Carson City had a population of 55,274.",
+    },
+    {
+        "Title": "The Commonwealth of Northern Mariana Islands",
+        "Content": "The Commonwealth of the Northern Mariana Islands is a group of islands in the Pacific Ocean that are a political division controlled by the United States. Its capital is Saipan.",
+    },
+    {
+        "Title": "The Capital of United States Virgin Islands",
+        "Content": "Charlotte Amalie is the capital and largest city of the United States Virgin Islands. It has about 20,000 people. The city is on the island of Saint Thomas.",
+    },
+    {
+        "Title": "Washington D.C.",
+        "Content": "Washington, D.C. (also known as simply Washington or D.C., and officially as the District of Columbia) is the capital of the United States. It is a federal district. The President of the USA and many major national government offices are in the territory. This makes it the political center of the United States of America.",
+    },
+    {
+        "Title": "Capital Punishment in the US",
+        "Content": "Capital punishment has existed in the United States since before the United States was a country. As of 2017, capital punishment is legal in 30 of the 50 states. The federal government (including the United States military) also uses capital punishment.",
+    },
+]
+
+yaml_docs = [yaml.dump(doc, sort_keys=False) for doc in docs]
+
+results = co.rerank(
+    model="rerank-v4.0-pro",
+    query=query,
+    documents=yaml_docs,
+    top_n=5,
+)
+
+```
+
+**`cURL`**
+
+```bash cURL
+curl --request POST \
+  --url https://api.cohere.ai/v2/rerank \
+  --header 'accept: application/json' \
+  --header 'content-type: application/json' \
+  --header "Authorization: bearer $CO_API_KEY" \
+  --data '{
+    "model": "rerank-v4.0-pro",
+    "query": "What is the capital of the United States?",
+    "documents": [
+      "Title: Facts about Carson City\nContent: Carson City is the capital city of the American state of Nevada. At the 2010 United States Census, Carson City had a population of 55,274.\n",
+      "Title: The Commonwealth of Northern Mariana Islands\nContent: The Commonwealth of the Northern Mariana Islands is a group of islands in the Pacific Ocean that are a political division controlled by the United States. Its capital is Saipan.\n",
+      "Title: The Capital of United States Virgin Islands\nContent: Charlotte Amalie is the capital and largest city of the United States Virgin Islands. It has about 20,000 people. The city is on the island of Saint Thomas.\n",
+      "Title: Washington D.C.\nContent: Washington, D.C. (also known as simply Washington or D.C., and officially as the District of Columbia) is the capital of the United States. It is a federal district. The President of the USA and many major national government offices are in the territory. This makes it the political center of the United States of America.\n",
+      "Title: Capital Punishment in the US\nContent: Capital punishment has existed in the United States since before the United States was a country. As of 2017, capital punishment is legal in 30 of the 50 states. The federal government (including the United States military) also uses capital punishment.\n"
+    ],
+    "top_n": 5
+  }'
+```
+
+In the `documents` parameter, we are passing in a list YAML strings, representing the structured data.
+
+As before, we get back a `V2RerankResponse` object that will look like this:
+
+```python
+V2RerankResponse(
+    id="df4d8720-8265-4868-a8f5-0bcee7a35bd0",
+    results=[
+        V2RerankResponseResultsItem(
+            index=3, relevance_score=0.9497813
+        ),
+        V2RerankResponseResultsItem(
+            index=2, relevance_score=0.69064254
+        ),
+        V2RerankResponseResultsItem(
+            index=0, relevance_score=0.57901955
+        ),
+        V2RerankResponseResultsItem(
+            index=1, relevance_score=0.5482865
+        ),
+        V2RerankResponseResultsItem(
+            index=4, relevance_score=0.49375027
+        ),
+    ],
+    meta=ApiMeta(
+        api_version=ApiMetaApiVersion(
+            version="2", is_deprecated=None, is_experimental=None
+        ),
+        billed_units=ApiMetaBilledUnits(
+            images=None,
+            input_tokens=None,
+            output_tokens=None,
+            search_units=1.0,
+            classifications=None,
+        ),
+        tokens=None,
+        cached_tokens=None,
+        warnings=None,
+    ),
+)
+```
+
+## Multilingual Reranking
+
+Cohere's Rerank models have been trained for performance across 100+ languages.
+
+When choosing the model, please note the following language support:
+
+* **Rerank 4.0** (both 'fast' and 'pro'): A single multilingual model (`rerank-v4.0-pro` and `rerank-v4.0-fast`)
+* **Rerank 3.5**: A single multilingual model (`rerank-v3.5`)
+* **Rerank 3.0**: Separate English-only and multilingual models (`rerank-english-v3.0` and `rerank-multilingual-v3.0`)
+
+The following table provides the list of languages supported by the Rerank models. Please note that performance may vary across languages.
+
+| ISO Code | Language Name   |
+| -------- | --------------- |
+| af       | Afrikaans       |
+| am       | Amharic         |
+| ar       | Arabic          |
+| as       | Assamese        |
+| az       | Azerbaijani     |
+| be       | Belarusian      |
+| bg       | Bulgarian       |
+| bn       | Bengali         |
+| bo       | Tibetan         |
+| bs       | Bosnian         |
+| ca       | Catalan         |
+| ceb      | Cebuano         |
+| co       | Corsican        |
+| cs       | Czech           |
+| cy       | Welsh           |
+| da       | Danish          |
+| de       | German          |
+| el       | Greek           |
+| en       | English         |
+| eo       | Esperanto       |
+| es       | Spanish         |
+| et       | Estonian        |
+| eu       | Basque          |
+| fa       | Persian         |
+| fi       | Finnish         |
+| fr       | French          |
+| fy       | Frisian         |
+| ga       | Irish           |
+| gd       | Scots\_gaelic   |
+| gl       | Galician        |
+| gu       | Gujarati        |
+| ha       | Hausa           |
+| haw      | Hawaiian        |
+| he       | Hebrew          |
+| hi       | Hindi           |
+| hmn      | Hmong           |
+| hr       | Croatian        |
+| ht       | Haitian\_creole |
+| hu       | Hungarian       |
+| hy       | Armenian        |
+| id       | Indonesian      |
+| ig       | Igbo            |
+| is       | Icelandic       |
+| it       | Italian         |
+| ja       | Japanese        |
+| jv       | Javanese        |
+| ka       | Georgian        |
+| kk       | Kazakh          |
+| km       | Khmer           |
+| kn       | Kannada         |
+| ko       | Korean          |
+| ku       | Kurdish         |
+| ky       | Kyrgyz          |
+| La       | Latin           |
+| Lb       | Luxembourgish   |
+| Lo       | Laothian        |
+| Lt       | Lithuanian      |
+| Lv       | Latvian         |
+| mg       | Malagasy        |
+| mi       | Maori           |
+| mk       | Macedonian      |
+| ml       | Malayalam       |
+| mn       | Mongolian       |
+| mr       | Marathi         |
+| ms       | Malay           |
+| mt       | Maltese         |
+| my       | Burmese         |
+| ne       | Nepali          |
+| nl       | Dutch           |
+| no       | Norwegian       |
+| ny       | Nyanja          |
+| or       | Oriya           |
+| pa       | Punjabi         |
+| pl       | Polish          |
+| pt       | Portuguese      |
+| ro       | Romanian        |
+| ru       | Russian         |
+| rw       | Kinyarwanda     |
+| si       | Sinhalese       |
+| sk       | Slovak          |
+| sl       | Slovenian       |
+| sm       | Samoan          |
+| sn       | Shona           |
+| so       | Somali          |
+| sq       | Albanian        |
+| sr       | Serbian         |
+| st       | Sesotho         |
+| su       | Sundanese       |
+| sv       | Swedish         |
+| sw       | Swahili         |
+| ta       | Tamil           |
+| te       | Telugu          |
+| tg       | Tajik           |
+| th       | Thai            |
+| tk       | Turkmen         |
+| tl       | Tagalog         |
+| tr       | Turkish         |
+| tt       | Tatar           |
+| ug       | Uighur          |
+| uk       | Ukrainian       |
+| ur       | Urdu            |
+| uz       | Uzbek           |
+| vi       | Vietnamese      |
+| wo       | Wolof           |
+| xh       | Xhosa           |
+| yi       | Yiddish         |
+| yo       | Yoruba          |
+| zh       | Chinese         |
+| zu       | Zulu            |

@@ -1028,7 +1028,6 @@ else:
             labels=["production"],
         )
         prompt = langfuse.get_prompt("dovidnyk-movie-critic")
-        print("version:", prompt.version)
         print("compiled:", prompt.compile(criticlevel="expert", movie="Dune 2"))
 
         langfuse.create_dataset(name="dovidnyk-qa", description="Датасет ноутбука 23")
@@ -1243,7 +1242,7 @@ print("Усі перевірки пройдено.")
 
 - Розділ 24 — евалюація: Promptfoo, LLM-як-суддя, датасети й оцінки в CI.
 - Розділ 25 — продакшн-сервінг: SSE-стрімінг, таймаути, бюджет і SLO.
-- Розділ 27 — безпека: що саме не можна писати в телеметрію.
+- Розділ 13 — безпека інструментів: що саме не можна писати в телеметрію.
 
 ## Джерела
 

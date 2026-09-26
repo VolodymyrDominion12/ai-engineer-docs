@@ -1,0 +1,10 @@
+### SOURCE: https://developers.openai.com/api/llms.txt
+
+# OpenAI API
+> Routing index for OpenAI API guides, endpoint reference, and common implementation tasks.
+Choose the guides index for concepts and implementation workflows. Choose the reference index for endpoint parameters and schemas.
+## Documentation sets
+- [OpenAI API guides](https://developers.openai.com/api/docs/llms.txt): Quickstart and conceptual guides for Responses, text, images, audio, Realtime, tools, evals, fine-tuning, and models.
+- [OpenAI API endpoint reference](https://developers.openai.com/api/reference/llms.txt): Endpoint groups, methods, request parameters, response schemas, and streaming events.
+## Optional
+- [Combined API documentation](https://developers.openai.com/api/llms-full.txt): Single-file export of all OpenAI API guides and endpoint reference pages.

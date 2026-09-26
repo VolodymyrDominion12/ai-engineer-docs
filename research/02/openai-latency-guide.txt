@@ -1,0 +1,992 @@
+### SOURCE: https://platform.openai.com/docs/guides/latency-optimization
+
+- - - - 
+ Latency optimization | OpenAI API
+ - - - - - - - - 
+For the complete documentation index, see llms.txt. Markdown versions of documentation pages are available by appending
+.md to the page URL.
+ ChatGPT Start searching API Dashboard 
+ Try ChatGPT 
+ Search the API docs 
+ Search docs
+Suggested
+responses createreasoning_effortrealtimeprompt caching
+ Primary navigation 
+ Search docs
+Suggested
+responses createreasoning_effortrealtimeprompt caching
+ Overview Models Agents Tools Audio & voice Production API reference 
+ OverviewModelsAgentsToolsAudio & voiceProductionAPI referenceDocsProduction 
+ - Home 
+ Get started 
+ - Quickstart 
+- Using GPT-6 
+- Key concepts 
+ Core concepts 
+ - Responses API 
+- Conversation state 
+- Background mode 
+- Streaming 
+- WebSocket mode 
+- Mid-turn steering 
+- Multi-agent 
+- Webhooks 
+- File inputs 
+- Compaction 
+- Counting tokens 
+ SDKs and CLI 
+ - OpenAI SDK 
+- OpenAI CLI 
+ Resources 
+ - Changelog 
+- Deprecations 
+- Supported countries 
+- OpenAI Crawlers 
+- Terms and policies 
+ Legacy APIs 
+ - Agent Builder - Overview 
+- Migration guide 
+- Node reference 
+- Safety in building agents 
+- Evals - Getting started 
+- Working with evals 
+- Prompt optimizer 
+- External models 
+- Best practices 
+- Graders 
+- Fine-tuning - Optimization cycle 
+- Supervised fine-tuning 
+- Vision fine-tuning 
+- Direct preference optimization 
+- Reinforcement fine-tuning 
+- RFT use cases 
+- Best practices 
+- Assistants API - Migration guide 
+ - Model catalog 
+ Choose a model 
+ - Pricing 
+- Model selection 
+ Text and code 
+ - Text generation 
+- Code generation 
+- Structured output 
+ Prompting 
+ - Overview 
+- Prompt engineering 
+- Citation formatting 
+- Migration guide 
+- Prompt generation 
+- Frontend prompting 
+ Reasoning 
+ - Reasoning models 
+- Reasoning best practices 
+ Images 
+ - Images and vision - Image input cost calculator 
+- Image generation - Overview 
+- Image prompting 
+ Realtime and audio 
+ - Audio and speech 
+- Getting started 
+- Voice agents 
+ Specialized models 
+ - Deep research 
+- Embeddings 
+- Moderation 
+ - Overview 
+ Agents API 
+ - Overview 
+- Quickstart 
+- Architecture 
+- Configuring Agents 
+- Sessions - Run and continue sessions 
+- Events and items 
+- Manage sessions 
+- Webhooks 
+- Environments and sandboxes - OpenAI-hosted sandboxes 
+- Self-hosted sandboxes 
+- Sandbox lifecycle 
+- Sandbox security 
+- Files and artifacts 
+- Tools and integrations - Web search 
+- Functions 
+- MCP connections 
+- Plugins 
+- Vaults 
+- Multi-agent 
+- Observability and usage 
+- Tracing 
+ Agents SDK 
+ - Overview 
+- Quickstart 
+- Agent definitions 
+- Models and providers 
+- Running agents 
+- Sandbox agents 
+- Orchestration 
+- Guardrails 
+- Results and state 
+- Integrations and observability 
+- Evaluate agent workflows 
+ ChatKit 
+ - Overview 
+- Customize 
+- Widgets 
+- Actions 
+- Advanced integrations 
+ - Overview 
+- Function calling 
+ Search and retrieval 
+ - Web search 
+- File search 
+- Retrieval 
+ Connect tools and data 
+ - MCP servers 
+- Secure MCP Tunnel 
+ Build tool workflows 
+ - Skills 
+- Tool search 
+- Programmatic tool calling 
+- Async tool calling 
+ Computer and code 
+ - Shell 
+- Computer use 
+- Apply Patch 
+- Local shell 
+- Code interpreter 
+ Media 
+ - Image generation 
+ - Overview 
+ GPT-Live 
+ - Getting started 
+- Prompting 
+- Managing sessions 
+- Delegation and tools 
+- Migrate to GPT-Live 
+- Partner integrations 
+ Realtime API 
+ - Getting started 
+- Prompting 
+- Managing conversations 
+- Voice activity detection 
+- Tools and MCP 
+ Build with voice 
+ - Voice agents 
+- Custom voices 
+- Cost optimization 
+ Connections 
+ - WebRTC 
+- WebRTC with WARP 
+- WebSockets 
+- Telephony and SIP 
+- Server-side controls 
+ Audio processing 
+ - File transcription 
+- Live transcription 
+- Live translation 
+- Text to speech 
+- Audio in Chat Completions 
+ Go live 
+ - Production best practices 
+- Deployment checklist 
+ Performance and quality 
+ - Latency optimization 
+- Predicted Outputs 
+- Fast mode 
+- Accuracy optimization 
+ Cost and throughput 
+ - Cost optimization 
+- Prompt caching - Prompt cache diagnostics 
+- Batch 
+- Flex processing 
+ Safety and governance 
+ - Safety best practices 
+- Red teaming 
+- Daybreak 
+- Safety checks - Safety classifiers 
+- Cybersecurity checks 
+- Misalignment monitoring 
+- Under-18 guidance 
+- CSAM guidance 
+- Content provenance 
+- Your data 
+- Private Safety Processing 
+- Permissions 
+ Infrastructure and access 
+ - Terraform provider - Overview 
+- Projects and access 
+- Service accounts 
+- Rate limits and spend 
+- Model, tool, and data controls 
+- Import and reconciliation 
+- Private Link 
+- IP allowlist 
+- Organization blocking 
+- Mutual TLS 
+- Workload identity federation - Federation rules 
+- X.509 certificates 
+- Kubernetes 
+- AWS 
+- Microsoft Azure 
+- Google Cloud 
+- Oracle Cloud Infrastructure 
+- GitHub Actions 
+- SPIFFE 
+- IP egress ranges 
+- Amazon Bedrock 
+ Operations 
+ - Rate limits 
+- Spend limits 
+- Admin APIs 
+- Error codes 
+ Docs Use cases 
+ DocsUse casesDocsDocs 
+ Plugins Workspace Agents Commerce Ads 
+ PluginsWorkspace AgentsCommerceAdsDocsSelect... 
+ - Home 
+- Quickstart 
+ Core concepts 
+ - Plugin architecture 
+- Skills 
+- MCP server 
+ Plan 
+ - Brainstorm use cases 
+- Define tools 
+ Build 
+ - Build an MCP server 
+- Add UI to your MCP server (optional) 
+- Authenticate users 
+- Build skills 
+- Package your plugin 
+- Examples 
+ Test and publish 
+ - Connect and test your plugin 
+- Submit and publish 
+- Submission error reference 
+ Conversion specs 
+ - Restaurant reservation spec 
+- Get Quote spec 
+- Product checkout spec 
+ Guides 
+ - UI guidelines 
+- Optimize Metadata 
+- Submit a Claude Code plugin 
+- Security & Privacy 
+- Troubleshooting 
+ Resources 
+ - Changelog 
+- Plugin guidelines 
+- MCP server review requirements 
+- Plugin UI reference 
+- Checkout API reference 
+ - Home 
+ Get started 
+ - Trigger workspace agent runs 
+- Authenticate with Workspace Agent access tokens 
+ - Home 
+ Guides 
+ - Get started 
+- Best practices 
+ File Upload 
+ - Overview 
+- Products 
+ API 
+ - Overview 
+- Feeds 
+- Products 
+- Promotions 
+ - Ads Overview 
+ Measurement 
+ - Measurement Pixel 
+- Multiple Pixels (Advanced) 
+- Image Tag 
+- Conversions API 
+- Supported Events 
+ Advertiser API 
+ - Overview 
+- API Partner Setup 
+- Campaign Management 
+- Bidding & Budgets 
+- Targeting 
+- Product Feeds 
+- Conversion Tracking 
+- Reporting 
+- Troubleshooting 
+- Account Management 
+ API Reference 
+ - Authentication 
+- Ad Account 
+- Campaigns 
+- Ad Groups 
+- Ads 
+- Insights 
+- Files 
+- Conversion Setup 
+ Overview Features Configuration Developers Security Administration Use Cases Resources 
+ OverviewFeaturesConfigurationDevelopersSecurityAdministrationUse CasesResourcesDocsOverview 
+ - Home 
+ Get started 
+ - Quickstart 
+- Use ChatGPT 
+- Get started with Work 
+- Import from another agent 
+ Foundations 
+ - Prompting 
+- Model selection 
+- Personalize ChatGPT 
+- Skills & Plugins 
+- Permissions 
+ Explore 
+ - What's new 
+- Models 
+- Pricing 
+- Glossary 
+ Available on 
+ - ChatGPT desktop app 
+- Remote 
+- ChatGPT on the web 
+- Codex CLI 
+- Codex IDE extension 
+- Codex cloud 
+ Releases 
+ - Changelog 
+- Feature Maturity 
+- Open Source 
+ - Overview 
+ Workflows 
+ - Projects and chats 
+- Sites 
+- Build plugins 
+- Visualizations 
+- Scheduled tasks 
+- Long-running work 
+- Notifications 
+- Pets 
+- Codex Micro 
+ Capabilities 
+ - Browser 
+- Computer use 
+- Voice 
+- Plugins 
+- Web search 
+- Image generation 
+- Image inputs 
+- Appshots 
+- Browser extension 
+- Work with files 
+ Reference 
+ - Commands 
+- Slash commands 
+- Settings 
+- Troubleshooting 
+ - Overview 
+ Customization 
+ - Overview 
+- Memories 
+- Computer History 
+ Config file 
+ - Config Basics 
+- Advanced Config 
+- Config Reference 
+- Environment Variables 
+- Sample Config 
+ Agent configuration 
+ - AGENTS.md 
+- Subagents 
+- Speed 
+- Rules 
+ Extend ChatGPT and Codex 
+ - Record & Replay 
+- MCP 
+ Linux 
+ - Desktop app 
+ Windows 
+ - Desktop app 
+- Windows sandbox 
+- WSL 
+ - Overview 
+ Development workflows 
+ - Code review 
+- Integrated terminal 
+ Extend and automate 
+ - Build skills 
+- Site tools (WebMCP) 
+- Hooks 
+ Environments 
+ - Modes 
+- Local environments 
+- Cloud environment 
+- Git worktrees 
+ Build with Codex 
+ - Codex SDK 
+- App Server 
+- GitHub Action 
+- Non-interactive mode 
+ Third-party integrations 
+ - GitHub 
+- GitLab (Beta) 
+- Slack 
+- Linear 
+ Reference 
+ - CLI customization 
+- Developer commands 
+- Developer settings 
+ - Overview 
+ Permissions 
+ - Profiles 
+- Sandboxing 
+- Auto-review 
+- Agent approvals & security 
+- Internet access 
+ Codex Security 
+ - Overview 
+- Codex Security plugin - Quickstart 
+- Run a security scan 
+- Run a deep scan 
+- Review code changes 
+- Use the Security workbench 
+- Triage a backlog 
+- Fix findings 
+- Propose security hardening 
+- Write vulnerability reports 
+- Export and track findings 
+- Changelog 
+- Codex Security CLI - Quickstart 
+- Run bulk scans 
+- Run scans in CI 
+- GitLab CI/CD 
+- Reference 
+- FAQ 
+- TypeScript SDK 
+- Codex Security cloud - Setup 
+- Security Review 
+- Improving the threat model 
+- FAQ 
+ Cyber safety 
+ - Models & Trusted Access 
+- Recommended configuration 
+ - Overview 
+ Getting started 
+ - Admin rollout guide 
+ ChatGPT Work 
+ - ChatGPT Work Overview 
+- ChatGPT Work cloud security 
+- ChatGPT Work local security 
+- ChatGPT Work admin FAQ 
+- ChatGPT Work: usage and cost 
+ Identity and authentication 
+ - Authentication overview 
+- Personal Access Tokens 
+- Service accounts 
+ Workspace access, policy, and models 
+ - Groups and provisioning 
+- User lifecycle management 
+- Roles and workspace permissions 
+- GPTs and Sharing 
+- Migrate custom GPTs to plugins 
+- Managed configuration 
+- Prisma AIRS 
+- HIPAA configuration 
+- Workspace model availability 
+ Plugin and connector controls 
+ - Plugin controls 
+- Plugin management 
+- Skill controls 
+ Usage, governance, and compliance 
+ - Governance 
+- Admin plugin 
+- Workspace analytics 
+- Usage Insights 
+- Analytics API 
+- Compliance API and audit events 
+ Deployment and model providers 
+ - Manage app updates 
+- Windows app deployment 
+- Remote connections 
+- Amazon Bedrock 
+ - Explore use cases 
+- Collections 
+ - Home 
+- Videos 
+- Showcase 
+- OpenAI Academy 
+- Online trainings 
+ Community 
+ - Codex Ambassadors 
+- Codex for Students 
+- Codex for Open Source 
+- Events 
+ Blog 
+ - Company blog 
+- Developer blog 
+ - Explore use cases 
+- Collections 
+ - Home 
+- Videos 
+- Showcase 
+- OpenAI Academy 
+- Online trainings 
+ Community 
+ - Codex Ambassadors 
+- Codex for Students 
+- Codex for Open Source 
+- Events 
+ Blog 
+ - Company blog 
+- Developer blog 
+ Showcase Blog Cookbook Learn Community 
+ ShowcaseBlogCookbookLearnCommunityDocsSelect... 
+ - All posts 
+ Recent 
+ - Bringing my LED display to life with GPT-Live-1 and Codex 
+- Rethinking skills and prompts for GPT-6 Astra 
+- Architectural visualization with Astra 
+- Building games with Astra 
+- Meet Rosalind Workbench: Empowering every scientist to be their own research team 
+ Topics 
+ - General 
+- API 
+- Apps SDK 
+- Audio 
+- Codex 
+- Life sciences 
+ - Home 
+ Topics 
+ - Agents 
+- Evals 
+- Multimodal 
+- Text 
+- Guardrails 
+- Optimization 
+- ChatGPT 
+- Codex 
+- gpt-oss 
+ Contribute 
+ - Cookbook on GitHub 
+ - Home 
+- OpenAI Developers plugin 
+- Docs MCP 
+ Categories 
+ - Demo apps 
+- Videos 
+ Topics 
+ - Agents 
+- Audio & Voice 
+- Computer Use 
+- Codex 
+- Evals 
+- gpt-oss 
+- Fine-tuning 
+- Image generation 
+- Scaling 
+- Tools 
+- Video generation 
+ - Community 
+ Programs 
+ - Codex Ambassadors 
+- Codex for Students 
+- Codex for Open Source 
+- OpenAI for Startups 
+ Spaces 
+ - Events 
+- Developer Forum 
+- Discord 
+- Reddit 
+- X 
+ API Dashboard 
+ Try ChatGPT 
+ Copy Page 
+ Latency optimization
+ Improve latency across a wide variety of LLM-related use cases.
+ Copy Page 
+ This guide covers the core set of principles you can apply to improve latency across a wide variety of LLM-related use cases. These techniques come from working with a wide range of customers and developers on production applications, so they should apply regardless of what you’re building—from a granular workflow to an end-to-end chat application.
+Although there are many individual techniques, this guide groups them into seven principles that represent a high-level taxonomy of approaches for improving latency.
+At the end, we’ll walk through an example to see how they can be applied.
+Seven principles 
+- Process tokens faster.
+- Generate fewer tokens.
+- Use fewer input tokens.
+- Make fewer requests.
+- Parallelize.
+- Make your users wait less.
+- Don’t default to an LLM.
+Process tokens faster 
+Inference speed is probably the first thing that comes to mind when addressing latency (but as you’ll see soon, it’s far from the only one). This refers to the actual rate at which the LLM processes tokens, and is often measured in TPM (tokens per minute) or TPS (tokens per second).
+The main factor that influences inference speed is model size—smaller models usually run faster (and cheaper), and when used correctly can even outperform larger models. To maintain high-quality performance with smaller models, you can explore:
+- using a longer, more detailed prompt,
+- adding (more) few-shot examples, or
+- fine-tuning / distillation.
+You can also employ inference optimizations like our Predicted outputs feature. Predicted outputs let you significantly reduce latency of a generation when you know most of the output ahead of time, such as code editing tasks. By giving the model a prediction, the LLM can focus more on the actual changes, and less on the content that will remain the same.
+ Deep dive
+Compute capacity & additional inference optimizations
+Other factors that affect inference speed are the amount of 
+compute you have available and any additional 
+inference optimizations you employ. 
+Most people can’t influence these factors directly, but if you’re curious, and
+have some control over your infra, faster hardware or 
+running engines at a lower saturation may give you a modest
+TPM boost. And if you’re down in the trenches, there’s a myriad of other 
+inference optimizations
+ that are a bit beyond the scope of this guide.
+Generate fewer tokens 
+Generating tokens is almost always the highest latency step when using an LLM: as a general heuristic, cutting 50% of your output tokens may cut ~50% of your latency. The way you reduce your output size will depend on output type:
+If you’re generating natural language, asking the model to be more concise (“under 20 words” or “be brief”) may help. You can also use few-shot examples and/or fine-tuning to teach the model shorter responses.
+If you’re generating structured output, try to minimize your output syntax where possible: shorten function names, omit named arguments, coalesce parameters, etc.
+Finally, while not common, you can also use max_tokens or stop_tokens to end your generation early.
+Always remember: an output token cut is a (milli)second earned!
+Use fewer input tokens 
+While reducing the number of input tokens does result in lower latency, this is not usually a significant factor—cutting 50% of your prompt may only result in a 1–5% latency improvement. Unless you’re working with truly massive context sizes (documents, images), you may want to spend your efforts elsewhere.
+That being said, if you are working with massive contexts (or you’re set on squeezing every last bit of performance and you’ve exhausted all other options) you can use the following techniques to reduce your input tokens:
+- Fine-tuning the model, to replace the need for lengthy instructions / examples.
+- Filtering context input, like pruning RAG results, cleaning HTML, etc.
+- Maximize shared prompt prefix, by putting dynamic portions (for example, RAG results and history) later in the prompt. This makes your request more KV cache-friendly (which most LLM providers use) and means fewer input tokens are processed on each request.
+Check out our docs to learn more about how prompt
+caching
+works.
+Make fewer requests 
+Each time you make a request, you incur some round-trip latency—this can start to add up.
+If you have sequential steps for the LLM to perform, instead of firing off one request per step consider putting them in a single prompt and getting them all in a single response. You’ll avoid the additional round-trip latency, and potentially also reduce complexity of processing multiple responses.
+An approach to doing this is by collecting your steps in an enumerated list in the combined prompt, and then requesting the model to return the results in named fields in a JSON object. This way, you can parse and reference each result.
+Parallelize 
+Parallel processing can be powerful when performing multiple steps with an LLM.
+If the steps are not strictly sequential, you can split them out into parallel calls. Two shirts take just as long to dry as one.
+If the steps are strictly sequential, however, you might still be able to leverage speculative execution. This is particularly effective for classification steps where one outcome is more likely than the others (for example, moderation).
+- Start step 1 and step 2 simultaneously (for example, input moderation and story generation)
+- Verify the result of step 1
+- If result was not the expected, cancel step 2 (and retry if necessary)
+If your guess for step 1 is right, then you essentially got to run it with zero added latency!
+Make your users wait less 
+There’s a huge difference between waiting and watching progress happen—make sure your users experience the latter. Here are a few techniques:
+- Streaming: The single most effective approach, as it cuts the waiting time to a second or less. (ChatGPT would feel pretty different if you saw nothing until each response was done.)
+- Chunking: If your output needs further processing before being shown to the user (moderation, translation), consider processing it in chunks instead of all at once. Do this by streaming to your back end, then sending processed chunks to your front end.
+- Show your steps: If you’re taking multiple steps or using tools, surface this to the user. The more real progress you can show, the better.
+- Loading states: Spinners and progress bars go a long way.
+Note that while showing your steps & having loading states have a mostly
+psychological effect, streaming & chunking genuinely do reduce overall
+latency once you consider the app + user system: the user will finish reading a response
+sooner.
+Don’t default to an LLM 
+Language models are powerful and versatile, and are therefore sometimes used in cases where a faster classical method would be more appropriate. Identifying such cases may allow you to cut your latency significantly. Consider the following examples:
+- Hard-coding: If your output is highly constrained, you may not need an LLM to generate it. Action confirmations, refusal messages, and requests for standard input are all great candidates to be hard-coded. (You can even use the age-old method of coming up with a few variations for each.)
+- Pre-computing: If your input is constrained (for example, category selection), you can generate multiple responses in advance, and just make sure you never show the same one to a user twice.
+- Leveraging UI: Summarized metrics, reports, or search results are sometimes better conveyed with classical, bespoke UI components rather than LLM-generated text.
+- Traditional optimization techniques: An LLM application is still an application; binary search, caching, hash maps, and runtime complexity are all still useful in a world of language models.
+Example 
+Let’s now look at a sample application, identify potential latency optimizations, and propose some solutions!
+We’ll be analyzing the architecture and prompts of a hypothetical customer service bot inspired by real production applications. The architecture and prompts section sets the stage, and the analysis and optimizations section will walk through the latency optimization process.
+You’ll notice this example doesn’t cover every single principle, much like
+real-world use cases don’t require applying every technique.
+Architecture and prompts 
+The following is the initial architecture for a hypothetical customer service bot. This is what we’ll be making changes to.
+At a high level, the diagram flow describes the following process:
+- A user sends a message as part of an ongoing conversation.
+- The last message is turned into a self-contained query (see examples in prompt).
+- We determine whether or not additional (retrieved) information is required to respond to that query.
+- Retrieval is performed, producing search results.
+- The assistant reasons about the user’s query and search results, and produces a response.
+- The response is sent back to the user.
+Below are the prompts used in each part of the diagram. While they are still only hypothetical and simplified, they are written with the same structure and wording that you would find in a production application.
+Places where you see placeholders like “[user input here]” represent
+dynamic portions, that would be replaced by actual data at runtime.
+ Query contextualization promptRe-writes user query to be a self-contained search query.
+```
+SYSTEM: Given the previous conversation, re-write the last user query so it contains
+all necessary context.
+# Example
+History: [{user: "What is your return policy?"},{assistant: "..."}]
+User Query: "How long does it cover?"
+Response: "How long does the return policy cover?"
+# Conversation
+[last 3 messages of conversation]
+# User Query
+[last user query]
+USER: [JSON-formatted input conversation here]
+```
+ Retrieval check promptDetermines whether a query requires performing retrieval to respond.
+```
+SYSTEM: Given a user query, determine whether it requires doing a realtime lookup to
+respond to.
+# Examples
+User Query: "How can I return this item after 30 days?"
+Response: "true"
+User Query: "Thank you!"
+Response: "false"
+USER: [input user query here]
+```
+ Assistant promptFills the fields of a JSON to reason through a pre-defined set of steps to produce a final response given a user conversation and relevant retrieved information.
+```
+SYSTEM: You are a helpful customer service bot.
+Use the result JSON to reason about each user query - use the retrieved context.
+# Example
+User: "My computer screen is cracked! I want it fixed now!!!"
+Assistant Response:
+{
+ "message_is_conversation_continuation": "True",
+ "number_of_messages_in_conversation_so_far": "1",
+ "user_sentiment": "Aggravated",
+ "query_type": "Hardware Issue",
+ "response_tone": "Validating and solution-oriented",
+ "response_requirements": "Propose options for repair or replacement.",
+ "user_requesting_to_talk_to_human": "False",
+ "enough_information_in_context": "True",
+ "response": "..."
+}
+USER: # Relevant Information
+` ` `
+[retrieved context]
+` ` `
+USER: [input user query here]
+```
+Analysis and optimizations 
+Part 1: Looking at retrieval prompts 
+Looking at the architecture, the first thing that stands out is the consecutive GPT-4 calls - these hint at a potential inefficiency, and can often be replaced by a single call or parallel calls.
+In this case, since the check for retrieval requires the contextualized query, let’s combine them into a single prompt to make fewer requests.
+ Combined query contextualization and retrieval check promptWhat changed? Before, we had one prompt to re-write the query and one to determine whether this requires doing a retrieval lookup. Now, this combined prompt does both. Specifically, notice the updated instruction in the first line of the prompt, and the updated output JSON:
+JavaScript 
+```
+1
+2
+3
+4{
+ query: "[contextualized query]",
+ retrieval: "[true/false - whether retrieval is required]",
+}
+```
+```
+1
+2
+3
+4
+5
+6combined_query = {
+ query: "[contextualized query]",
+ retrieval: "[true/false - whether retrieval is required]"
+}
+puts(combined_query)
+```
+```
+SYSTEM: Given the previous conversation, re-write the last user query so it contains
+all necessary context. Then, determine whether the full request requires doing a
+realtime lookup to respond to.
+Respond in the following form:
+{
+ query:"[contextualized query]",
+ retrieval:"[true/false - whether retrieval is required]"
+}
+# Examples
+History: [{user: "What is your return policy?"},{assistant: "..."}]
+User Query: "How long does it cover?"
+Response: {query: "How long does the return policy cover?", retrieval: "true"}
+History: [{user: "How can I return this item after 30 days?"},{assistant: "..."}]
+User Query: "Thank you!"
+Response: {query: "Thank you!", retrieval: "false"}
+# Conversation
+[last 3 messages of conversation]
+# User Query
+[last user query]
+USER: [JSON-formatted input conversation here]
+```
+Actually, adding context and determining whether to retrieve are straightforward and well-defined tasks, so we can likely use a smaller, fine-tuned model instead. Switching to GPT-3.5 will let us process tokens faster.
+Part 2: Analyzing the assistant prompt 
+Let’s now direct our attention to the Assistant prompt. There seem to be many distinct steps happening as it fills the JSON fields—this could indicate an opportunity to parallelize.
+However, let’s pretend we have run some tests and discovered that splitting the reasoning steps in the JSON produces worse responses, so we need to explore different solutions.
+Could we use a fine-tuned GPT-3.5 instead of GPT-4? Maybe—but in general, open-ended responses from assistants are best left to GPT-4 so it can better handle a greater range of cases. That being said, looking at the reasoning steps themselves, they may not all require GPT-4-level reasoning to produce. Their well-defined, limited scope makes them good potential candidates for fine-tuning.
+JavaScript 
+```
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11{
+ message_is_conversation_continuation: "True", // <-
+ number_of_messages_in_conversation_so_far: "1", // <-
+ user_sentiment: "Aggravated", // <-
+ query_type: "Hardware Issue", // <-
+ response_tone: "Validating and solution-oriented", // <-
+ response_requirements: "Propose options for repair or replacement.", // <-
+ user_requesting_to_talk_to_human: "False", // <-
+ enough_information_in_context: "True", // <-
+ response: "...", // X -- benefits from GPT-4
+}
+```
+```
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13assistant_response = {
+ message_is_conversation_continuation: "True", # <-
+ number_of_messages_in_conversation_so_far: "1", # <-
+ user_sentiment: "Aggravated", # <-
+ query_type: "Hardware Issue", # <-
+ response_tone: "Validating and solution-oriented", # <-
+ response_requirements: "Propose options for repair or replacement.", # <-
+ user_requesting_to_talk_to_human: "False", # <-
+ enough_information_in_context: "True", # <-
+ response: "..." # X -- benefits from GPT-4
+}
+puts(assistant_response)
+```
+This opens up the possibility of a trade-off. Do we keep this as a single request entirely generated by GPT-4, or split it into two sequential requests and use GPT-3.5 for all but the final response? We have a case of conflicting principles: the first option lets us make fewer requests, but the second may let us process tokens faster.
+As with many optimization tradeoffs, the answer will depend on the details. For example:
+- The proportion of tokens in the response vs the other fields.
+- The average latency decrease from processing most fields faster.
+- The average latency increase from doing two requests instead of one.
+The conclusion will vary by case, and the best way to make the determination is by testing this with production examples. In this case, let’s pretend the tests indicated it’s favorable to split the prompt in two to process tokens faster.
+Note: We’ll be grouping response and enough_information_in_context together in the second prompt to avoid passing the retrieved context to both new prompts.
+ Assistants prompt - reasoningThis prompt will be passed to GPT-3.5 and can be fine-tuned on curated examples.
+What changed? The “enough_information_in_context” and “response” fields were removed, and the retrieval results are no longer loaded into this prompt.
+```
+SYSTEM: You are a helpful customer service bot.
+Based on the previous conversation, respond in a JSON to determine the required
+fields.
+# Example
+User: "My freaking computer screen is cracked!"
+Assistant Response:
+{
+ "message_is_conversation_continuation": "True",
+ "number_of_messages_in_conversation_so_far": "1",
+ "user_sentiment": "Aggravated",
+ "query_type": "Hardware Issue",
+ "response_tone": "Validating and solution-oriented",
+ "response_requirements": "Propose options for repair or replacement.",
+ "user_requesting_to_talk_to_human": "False",
+}
+```
+ Assistants prompt - responseThis prompt will be processed by GPT-4 and will receive the reasoning steps determined in the prior prompt, as well as the results from retrieval.
+What changed? All steps were removed except for “enough_information_in_context” and “response”. Additionally, the JSON we were previously filling in as output will be passed in to this prompt.
+```
+SYSTEM: You are a helpful customer service bot.
+Use the retrieved context, as well as these pre-classified fields, to respond to
+the user's query.
+# Reasoning Fields
+` ` `
+[reasoning json determined in previous GPT-3.5 call]
+` ` `
+# Example
+User: "My freaking computer screen is cracked!"
+Assistant Response:
+{
+ "enough_information_in_context": "True",
+ "response": "..."
+}
+USER: # Relevant Information
+` ` `
+[retrieved context]
+` ` `
+```
+In fact, now that the reasoning prompt does not depend on the retrieved context we can parallelize and fire it off at the same time as the retrieval prompts.
+Part 3: Optimizing the structured output 
+Let’s take another look at the reasoning prompt.
+Taking a closer look at the reasoning JSON you may notice the field names themselves are quite long.
+JavaScript 
+```
+1
+2
+3
+4
+5
+6
+7
+8
+9{
+ message_is_conversation_continuation: "True", // <-
+ number_of_messages_in_conversation_so_far: "1", // <-
+ user_sentiment: "Aggravated", // <-
+ query_type: "Hardware Issue", // <-
+ response_tone: "Validating and solution-oriented", // <-
+ response_requirements: "Propose options for repair or replacement.", // <-
+ user_requesting_to_talk_to_human: "False", // <-
+}
+```
+```
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11reasoning = {
+ message_is_conversation_continuation: "True", # <-
+ number_of_messages_in_conversation_so_far: "1", # <-
+ user_sentiment: "Aggravated", # <-
+ query_type: "Hardware Issue", # <-
+ response_tone: "Validating and solution-oriented", # <-
+ response_requirements: "Propose options for repair or replacement.", # <-
+ user_requesting_to_talk_to_human: "False" # <-
+}
+puts(reasoning)
+```
+By making them shorter and moving explanations to the comments we can generate fewer tokens.
+JavaScript 
+```
+1
+2
+3
+4
+5
+6
+7
+8
+9{
+ cont: "True", // whether last message is a continuation
+ n_msg: "1", // number of messages in the continued conversation
+ tone_in: "Aggravated", // sentiment of user query
+ type: "Hardware Issue", // type of the user query
+ tone_out: "Validating and solution-oriented", // desired tone for response
+ reqs: "Propose options for repair or replacement.", // response requirements
+ human: "False", // whether user is expressing want to talk to human
+}
+```
+```
+1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11reasoning = {
+ cont: "True", # whether last message is a continuation
+ n_msg: "1", # number of messages in the continued conversation
+ tone_in: "Aggravated", # sentiment of user query
+ type: "Hardware Issue", # type of the user query
+ tone_out: "Validating and solution-oriented", # desired tone for response
+ reqs: "Propose options for repair or replacement.", # response requirements
+ human: "False" # whether user wants to talk to a human
+}
+puts(reasoning)
+```
+This small change removed 19 output tokens. While with GPT-3.5 this may only result in a few millisecond improvement, with GPT-4 this could shave off up to a second.
+You might imagine, however, how this can have quite a significant impact for larger model outputs.
+We could go further and use single characters for the JSON fields, or put everything in an array, but this may start to hurt our response quality. The best way to know, once again, is through testing.
+Example wrap-up 
+Let’s review the optimizations we implemented for the customer service bot example:
+- Combined query contextualization and retrieval check steps to make fewer requests.
+- For the new prompt, switched to a smaller, fine-tuned GPT-3.5 to process tokens faster.
+- Split the assistant prompt in two, switching to a smaller, fine-tuned GPT-3.5 for the reasoning, again to process tokens faster.
+- Parallelized the retrieval checks and the reasoning steps.
+- Shortened reasoning field names and moved comments into the prompt, to generate fewer tokens.
+ Ask AI 
+Docs agent
+Loading docs agent...

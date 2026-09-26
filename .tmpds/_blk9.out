@@ -1,0 +1,15 @@
+HTTP error.type                 error.code                         рішення  підстава
+ 400 invalid_request_error      invalid_service_tier               STOP     потрібна дія користувача: invalid_service_tier
+ 401 invalid_request_error      invalid_api_key                    STOP     потрібна дія користувача: invalid_api_key
+ 401 invalid_request_error      ip_not_authorized                  STOP     потрібна дія користувача: ip_not_authorized
+ 403 invalid_request_error      unsupported_country                STOP     потрібна дія користувача: unsupported_country
+ 429 rate_limit_error           rate_limit_exceeded                WAIT     чекати щонайменше 5 с (Retry-After)
+ 429 rate_limit_error           slow_down                          BACKOFF  експоненційний відкат із джиттером
+ 429 insufficient_quota         credit_balance_exhausted           STOP     потрібна дія користувача: credit_balance_exhausted
+ 429 insufficient_quota         organization_spend_limit_exceeded  STOP     потрібна дія користувача: organization_spend_limit_exceeded
+ 429 insufficient_quota         project_spend_limit_exceeded       STOP     потрібна дія користувача: project_spend_limit_exceeded
+ 429 insufficient_quota         organization_usage_limit_exceeded  STOP     потрібна дія користувача: organization_usage_limit_exceeded
+ 500 server_error               server_error                       BACKOFF  експоненційний відкат із джиттером
+ 503 service_unavailable_error  server_is_overloaded               BACKOFF  експоненційний відкат із джиттером
+
+з 12 кодів ретраїти можна 4, решта 8 — ні (ретрай не допоможе)

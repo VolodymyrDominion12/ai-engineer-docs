@@ -1,0 +1,352 @@
+### SOURCE: https://docs.vllm.ai/en/latest/features/automatic_prefix_caching.html
+
+- - - - Automatic Prefix Caching - vLLM- - - - - - - Skip to content 
+ You are viewing the latest developer preview docs. Click here to view docs for the latest stable release.
+ Initializing search 
+ GitHub 
+ - Examples 
+ - Basic 
+ - Deployment 
+ - Disaggregated 
+ - Features 
+ - Generate 
+ - Observability 
+ - Pooling 
+ - Ray Serving 
+ - Reasoning 
+ - RL 
+ - Scale Out 
+ - Speech To Text 
+ - Tool Calling 
+ - General 
+ - Inference and Serving 
+ - Context Parallel Deployment 
+ - Data Parallel Deployment 
+ - Troubleshooting distributed deployments 
+ - Expert Parallel Deployment 
+ - Parallelism and Scaling 
+ - Integrations 
+ - Deployment 
+ - Integrations 
+ - Training 
+ - Configuration 
+ - Models 
+ - Extensions 
+ - Hardware Supported Models 
+ - Features 
+ - Batch Invariance 
+ - Context Extension 
+ - Cross-Encoder Output Reuse 
+ - Custom Arguments 
+ - Custom Logits Processors 
+ - Disaggregated Encoder 
+ - Disaggregated Prefilling (experimental) 
+ - CPU EC Connector Usage Guide 
+ - Engram: conditional memory via n-gram lookups 
+ - IndexCache 
+ - Initialized engine snapshots 
+ - Interleaved Thinking 
+ - KV Offloading Usage Guide 
+ - LoRA Adapters 
+ - MooncakeConnector Usage Guide 
+ - MooncakeStoreConnector Usage Guide 
+ - MoRIIOConnector Usage Guide 
+ - Multimodal Inputs 
+ - NixlConnector Compatibility Matrix 
+ - NixlConnector Usage Guide 
+ - Per-Request Metrics 
+ - Preload 
+ - Prompt Embedding Inputs 
+ - Reasoning Outputs 
+ - Sleep Mode 
+ - Structured Outputs 
+ - Tool Calling 
+ - Text watermarking 
+ - Quantization 
+ - Speculative Decoding 
+ - Developer Guide 
+ - Model Implementation 
+ - CI 
+ - Design Documents 
+ - Architecture Overview 
+ - Attention Backend Feature Support 
+ - CUDA Graphs 
+ - Vision Encoder (ViT) CUDA Graphs 
+ - CustomOp 
+ - Dual Batch Overlap 
+ - How to debug the vLLM-torch.compile integration 
+ - Fused MoE Modular Kernel 
+ - Fusion torch.compile passes 
+ - HiSparse local KV offload architecture 
+ - Integration with Hugging Face 
+ - Hybrid KV Cache Manager 
+ - Logits Processors 
+ - Metrics 
+ - Multi-Modal Data Processing 
+ - Model Runner V2 Design Document 
+ - Fused MoE Kernel Features 
+ - Python Multiprocessing 
+ - NIXL KV Cache Lease Renewal 
+ - NIXL push-mode KV transfer 
+ - Optimization Levels 
+ - Paged Attention 
+ - Automatic Prefix Caching 
+ - torch.compile integration 
+ - torch.compile with Multimodal Encoders 
+ - vLLM IR: Functional Intermediate Representation 
+ - Benchmarking 
+ - API Reference 
+ - benchmarks 
+ - lib 
+ - sweep 
+ - compilation 
+ - ir 
+ - utility 
+ - config 
+ - cute_utils 
+ - device_allocator 
+ - distributed 
+ - device_communicators 
+ - ec_transfer 
+ - data 
+ - scheduler 
+ - worker 
+ - mooncake 
+ - mooncake_store_embedding 
+ - elastic_ep 
+ - eplb 
+ - kv_transfer 
+ - hisparse 
+ - lmcache_integration 
+ - mooncake 
+ - moriio 
+ - nixl 
+ - offloading 
+ - weight_transfer 
+ - engine 
+ - entrypoints 
+ - cli 
+ - cohere 
+ - generate 
+ - beam_search 
+ - generative_scoring 
+ - launchers 
+ - render 
+ - utils 
+ - mcp 
+ - openai 
+ - completion 
+ - models 
+ - parser 
+ - responses 
+ - pooling 
+ - classify 
+ - embed 
+ - pooling 
+ - scoring 
+ - scale_out 
+ - render 
+ - token_in_token_out 
+ - serve 
+ - rlhf 
+ - rpc 
+ - server_info 
+ - sleep 
+ - elastic_ep 
+ - engine 
+ - exception_handling 
+ - fault_tolerance 
+ - instrumentator 
+ - lora 
+ - middleware 
+ - profile 
+ - sagemaker 
+ - tokenize 
+ - utils 
+ - speech_to_text 
+ - realtime 
+ - transcription 
+ - translation 
+ - inputs 
+ - ir 
+ - kernels 
+ - triton 
+ - logging_utils 
+ - lora 
+ - ops 
+ - triton_ops 
+ - xpu_ops 
+ - punica_wrapper 
+ - model_executor 
+ - hw_agnostic 
+ - kernels 
+ - linear 
+ - mixed_precision 
+ - mxfp4 
+ - mxfp6 
+ - mxfp8 
+ - nvfp4 
+ - scaled_mm 
+ - mhc 
+ - layers 
+ - fused_moe 
+ - oracle 
+ - prepare_finalize 
+ - router 
+ - runner 
+ - fusion 
+ - hpc 
+ - mamba 
+ - linear 
+ - ops 
+ - gdn_chunk_cutedsl 
+ - minimax_rms_norm 
+ - pooler 
+ - tokwise 
+ - quantization 
+ - schemes 
+ - transform 
+ - inc 
+ - online 
+ - quark 
+ - turboquant 
+ - utils 
+ - rotary_embedding 
+ - model_loader 
+ - weight_cache 
+ - models 
+ - offloader 
+ - warmup 
+ - models 
+ - deepseek_v4 
+ - common 
+ - cpu 
+ - nvidia 
+ - xpu 
+ - deepseek_v32 
+ - common 
+ - nvidia 
+ - deepseek_v41 
+ - common 
+ - nvidia 
+ - dots3_note 
+ - nvidia 
+ - glm5next 
+ - common 
+ - nvidia 
+ - hy_v4 
+ - nvidia 
+ - inkling 
+ - common 
+ - nvidia 
+ - kimi_k3 
+ - common 
+ - nvidia 
+ - third_party 
+ - minimax_m3 
+ - common 
+ - nvidia 
+ - qwen4_exp 
+ - common 
+ - nvidia 
+ - multimodal 
+ - media 
+ - processing 
+ - video_decoders 
+ - video_prune 
+ - parser 
+ - platforms 
+ - plugins 
+ - io_processors 
+ - lora_resolvers 
+ - profiler 
+ - ray 
+ - reasoning 
+ - renderers 
+ - snapshot 
+ - tilelang_utils 
+ - tokenizers 
+ - tool_parsers 
+ - tracing 
+ - transformers_utils 
+ - triton_utils 
+ - usage 
+ - utils 
+ - v1 
+ - ops 
+ - turboquant_soa 
+ - core 
+ - engine 
+ - executor 
+ - fault_tolerance 
+ - hisparse 
+ - kv_hints 
+ - kv_offload 
+ - tiering 
+ - fs 
+ - kvcr 
+ - obj 
+ - p2p 
+ - data 
+ - session 
+ - metrics 
+ - pool 
+ - sample 
+ - ops 
+ - simple_kv_offload 
+ - spec_decode 
+ - structured_output 
+ - watermarking 
+ - worker 
+ - gpu 
+ - mm 
+ - model_states 
+ - pool 
+ - sample 
+ - spec_decode 
+ - dflash 
+ - dflash2 
+ - dspark 
+ - eagle 
+ - gemma4 
+ - lilicorr 
+ - mtp 
+ - multi_module_mtp 
+ - sentinel 
+ - CLI Reference 
+ - launch 
+ - Community 
+ - Blog 
+ - Forum 
+ - Slack 
+ Automatic Prefix Caching¶
+ Introduction¶
+ Automatic Prefix Caching (APC in short) caches the KV cache of existing queries, so that a new query can directly reuse the KV cache if it shares the same prefix with one of the existing queries, allowing the new query to skip the computation of the shared part.
+ Note
+ Technical details on how vLLM implements APC can be found here.
+ Enabling APC in vLLM¶
+ Set enable_prefix_caching=True in vLLM engine to enable APC. Here is an example:
+ examples/features/automatic_prefix_caching/automatic_prefix_caching_offline.py
+ Hybrid Mamba models¶
+ Under --mamba-cache-mode align, Mamba state is stored only on the Mamba block grid, so a prefix-cache hit can resume only at a block boundary. --enable-mamba-shared-prefix-checkpoint also stores a checkpoint at the shared-prefix junction, the point where an earlier request with the same prefix stopped. Requests whose shared prefix ends inside a block can then reuse it.
+ This helps when many requests share a long system prompt and then diverge. It is off by default, and takes effect only when all of the following hold:
+ - --mamba-cache-mode align
+ - EAGLE/MTP speculative decoding on the Mamba group
+ - --prefix-match-unit smaller than the Mamba block size
+ - the model does not use multi-module MTP
+```
+vllm serve <hybrid-model> \
+ --mamba-cache-mode align \
+ --prefix-match-unit 64 \
+ --enable-mamba-shared-prefix-checkpoint
+```
+ --prefix-match-unit is required. It sets the granularity at which prefix-cache keys are computed. When unset it defaults to the greatest common divisor of the prefix-cacheable KV cache group block sizes. Under align that is the block size itself, so no sub-block boundary exists and the flag has no effect.
+ Choose a value that divides the block size of every prefix-cacheable KV cache group, and that is a multiple of the per-state compression ratio for models that use one, such as sparse MLA. vLLM validates both at startup and names the offending sizes in the error. Read the served block size from the startup log. 64 is a reasonable starting point.
+ Example workloads¶
+ We describe two example workloads, where APC can provide huge performance benefit:
+ - Long document query, where the user repeatedly queries the same long document (e.g. software manual or annual report) with different queries. In this case, instead of processing the long document again and again, APC allows vLLM to process this long document only once, and all future requests can avoid recomputing this long document by reusing its KV cache. This allows vLLM to serve future requests with much higher throughput and much lower latency.
+ - Multi-round conversation, where the user may chat with the application multiple times in the same chatting session. In this case, instead of processing the whole chatting history again and again, APC allows vLLM to reuse the processing results of the chat history across all future rounds of conversation, allowing vLLM to serve future requests with much higher throughput and much lower latency.
+ Limits¶
+ APC in general does not reduce the performance of vLLM. With that being said, APC only reduces the time of processing the queries (the prefilling phase) and does not reduce the time of generating new tokens (the decoding phase). So APC does not bring performance gain when vLLM spends most of the time generating answers to the queries (e.g. when the length of the answer is long), or new queries do not share the same prefix with any of existing queries (so that the computation cannot be reused).
+ September 20, 2026 
+ Back to top Made with Material for MkDocs

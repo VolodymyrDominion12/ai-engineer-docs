@@ -1,0 +1,227 @@
+### SOURCE: https://huggingface.co/docs/hub/en/jobs-manage.md
+
+# Manage Jobs
+
+## List Jobs
+
+Find your list of Jobs in the Jobs page or your organization Jobs page (user/organization page > settings > Jobs):
+
+It is also available in the Hugging Face CLI. Show the list of running Jobs with `hf jobs ps` and use `-a` to show all the Jobs:
+
+```bash
+>>> hf jobs ps
+JOB ID       IMAGE/SPACE      COMMAND     CREATED             STATUS  
+------------ ---------------- ----------- ------------------- ------- 
+69402ea6c... ghcr.io/astra... uv run p... 2025-12-15 15:52:06 RUNNING
+>>> hf jobs ps -a
+JOB ID       IMAGE/SPACE COMMAND         CREATED             STATUS    
+------------ ---------- --------------- ------------------- --------- 
+69402ea6c... ghcr.io... uv run pytho... 2025-12-15 15:52:06 RUNNING   
+693b06b8c... ghcr.io... uv run pytho... 2025-12-11 18:00:24 CANCELED  
+693b069fc... ghcr.io... uv run pytho... 2025-12-11 17:59:59 ERROR     
+693aef401... ghcr.io... uv run pytho... 2025-12-11 16:20:16 COMPLETED 
+693aee76c... ubuntu     echo Hello f... 2025-12-11 16:16:54 COMPLETED 
+693ae8e3c... python:... python -c pr... 2025-12-11 15:53:07 COMPLETED
+```
+
+Specify your organization `namespace` to list Jobs under your organization:
+
+```bash
+>>> hf jobs ps --namespace <my-org-name>
+```
+
+## Filter Jobs
+
+Your most-used labels are shown above the Jobs list with the number of Jobs using each; click one to filter by it, or type any `key=value` label:
+
+In the CLI, filter by status with `--status` and by label with `--label key=value`. Repeat `--label` to require several labels at once:
+
+```bash
+# Jobs that ended in error
+>>> hf jobs ps --status error
+
+# Running or scheduling Jobs with a given label
+>>> hf jobs ps --status running,scheduling --label env=prod
+
+# All Jobs (any status) that have both labels
+>>> hf jobs ps -a --label model=Qwen3-06B --label dataset=Capybara
+
+# A label added without a value (`--label fine-tuning`) is matched with a trailing "="
+>>> hf jobs ps -a --label fine-tuning=
+```
+
+Filter by name with `--name`, a shortcut for `--label name=<name>`, for example to list every run of a named Job:
+
+```bash
+>>> hf jobs ps -a --name daily-report
+JOB_ID      NAME         IMAGE/SPACE COMMAND      CREATED      STATUS    RUNTIME
+----------- ------------ ----------- ------------ ------------ --------- -------
+6a9042c2... daily-report python:3.12 python -c... 2026-08-2... COMPLETED 0s     
+6a904162... daily-report python:3.12 python -c... 2026-08-2... CANCELED  --     
+```
+
+> [!TIP]
+> By default `hf jobs ps` shows running and scheduling Jobs. Use `-a` to show all statuses; `-a` cannot be combined with `--status`.
+
+## Monitor resource usage
+
+Use `hf jobs stats` to get the usage statistics for CPU, memory, network and GPU (if any) of running Jobs:
+
+```bash
+>>> hf jobs stats
+JOB ID                   CPU % NUM CPU MEM % MEM USAGE        NET I/O         GPU UTIL % GPU MEM % GPU MEM USAGE   
+------------------------ ----- ------- ----- ---------------- --------------- ---------- --------- --------------- 
+695e83c5d2f3efac77e8cf18 8%    12.0    7.18% 10.9GB / 152.5GB 0.0bps / 0.0bps 100%       31.92%    25.9GB / 81.2GB
+```
+
+Specify one or several Job ids to only show the statistics of certain Jobs:
+
+```bash
+>>> hf jobs stats [job-ids]...
+```
+
+## Inspect a Job
+
+You can see the status logs of a Job in the Job page:
+
+Alternatively using the CLI
+
+```bash
+>>> hf jobs inspect 693994e21a39f67af5a41ad0 
+[
+    {
+        "id": "693994e21a39f67af5a41ad0",
+        "created_at": "2025-12-10 15:42:26.835000+00:00",
+        "docker_image": "ghcr.io/astral-sh/uv:python3.12-bookworm",
+        "space_id": null,
+        "command": ["bash", "-c", "python -c \"import urllib.request; import os; from pathlib import Path; o = urllib.request.build_opener(); o.addheaders = [(\\\"Authorization\\\", \\\"Bearer \\\" + os.environ[\\\"UV_SCRIPT_HF_TOKEN\\\"])]; Path(\\\"/tmp/script.py\\\").write_bytes(o.open(os.environ[\\\"UV_SCRIPT_URL\\\"]).read())\" && uv run --with trl /tmp/script.py"],
+        "arguments": [],
+        "environment": {"UV_SCRIPT_URL": "https://huggingface.co/datasets/lhoestq/hf-cli-jobs-uv-run-scripts/resolve/728cc5682eb402d7ffe66a2f6f97645b34cb08dd/train.py"},
+        "secrets": ["HF_TOKEN", "UV_SCRIPT_HF_TOKEN"],
+        "flavor": "a100-large",
+        "status": {"stage": "COMPLETED", "message": null},
+        "owner": {"id": "5e9ecfc04957053f60648a3e", "name": "lhoestq", "type": "user"},
+        "endpoint": "https://huggingface.co",
+        "url": "https://huggingface.co/jobs/lhoestq/693994e21a39f67af5a41ad0"
+    }
+]
+```
+
+and for the logs
+
+```bash
+>>> hf jobs logs 693994e21a39f67af5a41ad0
+Downloading nvidia-cuda-nvrtc-cu12 (84.0MiB)
+Downloading numpy (15.8MiB)
+Downloading nvidia-cuda-cupti-cu12 (9.8MiB)
+Downloading tokenizers (3.1MiB)
+Downloading nvidia-cusolver-cu12 (255.1MiB)
+Downloading nvidia-cufft-cu12 (184.2MiB)
+Downloading transformers (11.4MiB)
+Downloading setuptools (1.1MiB)
+... 
+```
+
+Specify your organization `namespace` to inspect a Job under your organization:
+
+```bash
+hf jobs inspect --namespace <my-org-name> <job_id>
+hf jobs logs --namespace <my-org-name> <job_id>
+```
+
+## Wait for Jobs to finish
+
+Use `hf jobs wait` to block until one or more Jobs reach a terminal state (`COMPLETED`, `CANCELED`, `ERROR` or `DELETED`). It exits with code `0` only if every Job completed successfully, and a non-zero code otherwise — handy for chaining steps in shell scripts or CI:
+
+```bash
+# Wait for a single Job
+>>> hf jobs wait 693994e21a39f67af5a41ad0
+
+# Wait for several Jobs at once (all must be in the same namespace)
+>>> hf jobs wait <job_id_1> <job_id_2>
+
+# Wait for every currently running Job
+>>> hf jobs ps -q | xargs hf jobs wait
+```
+
+Set a maximum wait with `--timeout` (accepts `s`, `m`, `h` or `d`):
+
+```bash
+>>> hf jobs wait --timeout 30m 693994e21a39f67af5a41ad0
+```
+
+Because `hf jobs wait` returns a non-zero exit code when a Job fails, you can chain it with `&&`. A non-detached `hf jobs run` (or `hf jobs uv run`) already blocks and exits non-zero on failure, so an explicit wait is only needed for detached Jobs (`-d`) or when waiting on a batch:
+
+```bash
+>>> hf jobs wait 693994e21a39f67af5a41ad0 && echo "job completed successfully"
+```
+
+## Persist your results
+
+A Job's filesystem is deleted when the Job ends. Write anything you want to keep somewhere durable before the Job exits:
+
+- **Intermediate artifacts, checkpoints, and logs → a Storage Bucket volume.** Mount a bucket and write outputs under the mount path — see [Volumes](./jobs-configuration#volumes) for examples. Volume mounts are authorized with your Hugging Face identity when the Job is created, so your script doesn't need a token to write to them.
+
+- **Final models and datasets → push to a Hub repo.** Jobs have no Hugging Face token unless you pass one, e.g. `--secrets HF_TOKEN` (the bare form resolves to your logged-in token automatically). If your script calls `push_to_hub()` or `create_repo()`, make sure the token has write access (fine-grained tokens need repo write and create permissions). A common failure mode is a Job that completes hours of compute and then errors on the final upload because the token can't write — the compute is done, but the results aren't saved.
+
+- **Print key results to the logs.** Job logs are retained after the Job ends and can be fetched anytime with `hf jobs logs <job-id>`. Printing final metrics to stdout keeps them recoverable even if an upload step fails.
+
+After a Job completes, check that your outputs actually landed (for example with `hf buckets list`) — a `COMPLETED` status means the command exited successfully, not that files were persisted where you expected.
+
+## Debug a Job
+
+If a Job has an error, you can see it in on the Job page
+
+Look at the status message and the logs on the Job page to see what went wrong.
+
+You may also look at the last lines of logs to see what happened before a Job failed. You can see that in the Job page, or using the CLI:
+
+```bash
+>>> hf jobs logs 69405cf51a39f67af5a41f29 | tail -n 10     
+ Downloaded nvidia-cudnn-cu12
+ Downloaded torch
+Installed 66 packages in 226ms
+Generating train split: 100%|██████████| 15806/15806 [00:00<00:00, 73330.17 examples/s]
+Generating test split: 100%|██████████| 200/200 [00:00<00:00, 45427.32 examples/s]
+Traceback (most recent call last):
+  File "/tmp/script.py", line 7, in <module>
+    train_dataset=train_dataset,
+                  ^^^^^^^^^^^^^
+NameError: name 'train_dataset' is not defined. Did you mean: 'load_dataset'?
+```
+
+Debug a Job locally using your local UV or Docker setup:
+
+* `hf jobs uv run ...` -> `uv run ...`
+* `hf jobs run ...` -> `docker run ...`
+
+The status message can say "Job timeout": it means the Job didn't finish in time before the timeout (the default is 30min) and therefore it was stopped.
+In this case you need to specify a higher timeout, using `--timeout` in the CLI, e.g.
+
+```bash
+hf jobs uv run --timeout 3h ...
+```
+
+## Cancel Jobs
+
+Use the "Cancel" button on the Job page to cancel a Job:
+
+or in the CLI:
+
+```bash
+hf jobs cancel 693b06b8c67c9f186cfe239e
+```
+
+Specify your organization `namespace` to cancel a Job under your organization:
+
+```bash
+hf jobs cancel --namespace <my-org-name> <job_id>
+```
+
+## MacOS menu bar
+
+Find your list of Jobs in the MacOS [`hfjobs-menubar`](https://github.com/drbh/hfjobs-menubar) client:
+
+Get Jobs information, and monitor logs and resource usage statistics:
+
+

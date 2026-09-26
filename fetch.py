@@ -46,10 +46,14 @@ if __name__ == "__main__":
     try:
         body = get(url)
     except Exception as e:
-        print(f"FETCH-FAIL {url}: {e}")
+        # ВАЖЛИВО: помилка йде в STDERR, а не в STDOUT.
+        # Інакше виклик `python3 fetch.py URL > файл` створив би файл,
+        # який містить лише текст помилки й виглядає як справжнє джерело.
+        # Саме так у цьому проєкті з'явилося кілька "файлів-джерел" із 404.
+        print(f"FETCH-FAIL {url}: {e}", file=sys.stderr)
         sys.exit(1)
     text = body if (md or url.endswith(".md")) else clean(body)
-    if "--fail-on-error" in sys.argv and not text.strip():
+    if not text.strip():
         print(f"FETCH-EMPTY {url}: отримано порожню відповідь", file=sys.stderr)
         sys.exit(2)
     print(f"### SOURCE: {url}\n")

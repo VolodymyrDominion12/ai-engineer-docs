@@ -106,7 +106,6 @@ AutoModelForVision2Seq, AutoModelWithLMHead, PYTORCH_TRANSFORMERS_CACHE, TRANSFO
 
 - Оновити `transformers`, не перевіривши код на `load_in_4bit` / `load_in_8bit`: помилка виникне лише
   в момент завантаження моделі, тобто у продакшні.
-- Сподіватися, що `model.config.rope_theta` ще працює — для частини моделей його немає.
 - Вважати `trust_remote_code` безпечним: гайд прямо перелічує несумісність старих remote-code
   репозиторіїв через видалені шляхи `tokenization_utils*`.
 
@@ -143,8 +142,6 @@ head pruning, єдиний коректний варіант — **залиши�
 | `AutoModelWithLMHead` | `AutoModelForCausalLM` / `AutoModelForMaskedLM` / `AutoModelForSeq2SeqLM` |
 | `AutoModelForVision2Seq` | `AutoModelForImageTextToText` |
 | `AutoImageProcessor(..., use_fast=False)` | `AutoImageProcessor(..., backend="pil")` |
-| `TRANSFORMERS_CACHE` | `HF_HOME` |
-| `transformers-cli` | `transformers` |
 | `tokenizer.additional_special_tokens_ids` | `tokenizer.extra_special_tokens_ids` |
 | `BatchEncoding.words()` | `BatchEncoding.word_ids()` |
 
@@ -191,8 +188,7 @@ print(tokenizer.decode(tokenizer.encode(inputs)))
 - Видалено автсинхронізацію налаштувань бекенда (`add_prefix_space`, `do_lower_case`, `strip_accents`,
   `tokenize_chinese_chars`) після ініціалізації.
 
-Практичний наслідок: скрипти, які **патчили** ці файли на диску після `save_pretrained`, перестануть
-працювати — файлів більше немає.
+Наслідок: скрипти, які **патчили** ці файли на диску після `save_pretrained`, перестануть працювати.
 
 #### Крок 4. Видалені методи токенізатора
 
@@ -270,16 +266,18 @@ for n, label, line in findings:
 Реальний вивід:
 
 ```text
-Знайдено місць для міграції: 5
-  рядок  1  [AutoModelWithLMHead]  from transformers import AutoModelForCausalLM, AutoTokenizer, AutoModelWithLMHead
-  рядок  3  [use_auth_token=]  tok = AutoTokenizer.from_pretrained("meta-llama/Llama-3.2-1B", use_auth_token=TOKEN)
-  рядок  5  [torch_dtype=]  "meta-llama/Llama-3.2-1B", torch_dtype="auto", load_in_4bit=True, device_map="auto"
-  рядок  7  [encode_plus(]  ids = tok.encode_plus("привіт", return_tensors="pt")["input_ids"]
+Знайдено місць для міграції: 6
+  рядок  2  [AutoModelWithLMHead]  from transformers import AutoModelForCausalLM, AutoTokenizer, AutoModelWithLMHead
+  рядок  4  [use_auth_token=]  tok = AutoTokenizer.from_pretrained("meta-llama/Llama-3.2-1B", use_auth_token=TOKEN)
+  рядок  6  [torch_dtype=]  "meta-llama/Llama-3.2-1B", torch_dtype="auto", load_in_4bit=True, device_map="auto"
+  рядок  6  [load_in_4bit/8bit=]  "meta-llama/Llama-3.2-1B", torch_dtype="auto", load_in_4bit=True, device_map="auto"
+  рядок  8  [encode_plus(]  ids = tok.encode_plus("привіт", return_tensors="pt")["input_ids"]
   рядок 10  [generate через config]  model.config.temperature = params["temperature"]   # v4-стиль
 ```
 
-`load_in_4bit` у рядку 5 **не** позначено окремо: аудитор зупиняється на першому збігу в рядку. Це
-спрощення прикладу — у продакшн-хуку збирайте всі збіги в рядку.
+Рядок 6 дав **два** збіги (`torch_dtype=` і `load_in_4bit=`) — це саме те, що потрібно від аудитора:
+в одному рядку можуть бути дві незалежні проблеми, і перша не повинна ховати другу. Номери рядків
+зміщені на одиницю відносно початку рядка коду, бо `V4_CODE` починається з порожнього рядка.
 
 **Типові помилки**
 
@@ -339,7 +337,7 @@ Apple Silicon MPS, XPU, ...) і лише за їх відсутності — CP
    збільшуйте її до появи OOM, заздалегідь навчившись обробляти OOM.
 
 Батчинг вимкнений за замовчуванням і «не гарантовано» швидший: на швидкість впливають залізо, дані й
-сама модель.
+модель.
 
 **Робочий приклад.** Мінімальний виклик із власним розміром батчу та обмеженням виходу:
 
@@ -382,8 +380,6 @@ for batch in out:
 - Забути про `device`: без нього пайплайн сам бере перший доступний прискорювач; `device="cpu"` —
   єдиний спосіб примусово працювати на CPU.
 - Чекати, що `batch_size` завжди прискорить: це не гарантовано, і на CPU рекомендація протилежна.
-- Пробувати `pipeline("question-answering")` або `pipeline("summarization")` — цих задач більше немає.
-- Передавати зображення окремим аргументом у `image-text-to-text`.
 
 **Альтернативи.**
 
@@ -488,8 +484,7 @@ generation_config.save_pretrained("my_account/my_model", push_to_hub=True)
 
 Кілька конфігурацій в одній теці розрізняються параметром `config_file_name`; для перекладу
 документація наводить `GenerationConfig(num_beams=4, early_stopping=True, decoder_start_token_id=0,
-eos_token_id=..., pad_token=...)` і завантаження через
-`GenerationConfig.from_pretrained("/tmp", config_file_name="translation_generation_config.json")`.
+eos_token_id=..., pad_token=...)` і читання через `GenerationConfig.from_pretrained`.
 
 #### Свій цикл декодування: `custom_generate`
 
@@ -596,7 +591,6 @@ elif "sdpa" in applicable_attention:
 ```
 
 Якщо ви попросили `"sdpa"` **явно** — помилка не глушиться.
-
 Скомпільовані ядра завантажуються з Hub під час виконання, що прибирає проблеми з несумісними версіями
 PyTorch і CUDA; вони автоматично реєструються в `AttentionInterface`, тож окремо встановлювати пакет
 FlashAttention не потрібно:
@@ -872,8 +866,7 @@ def _get_model_class(config, model_mapping):
 
 | # | Що робить |
 |---|---|
-| 1 | Витягує `config` з kwargs, ставить `kwargs["_from_auto"] = True`, розділяє hub-параметри (`cache_dir`, `force_download`, `local_files_only`, `proxies`, `revision`, `subfolder`, `token`); якщо `_commit_hash` не заданий — окремим викликом `cached_file(...)` по `config.json` отримує commit hash **якнайраніше** |
-| 2 | Якщо доступний PEFT — шукає `find_adapter_config_file(...)`; знайшовши адаптер, бере з нього `base_model_name_or_path` і перемикається на базову модель (окрім випадку, коли локальний шлях уже містить повну модель із вбудованим адаптером) |
+| 1 | Витягує `config` з kwargs, ставить `kwargs["_from_auto"] = True`, розділяє hub-параметри (`cache_dir`, `force_download`, `local_files_only`, `proxies`, `revision`, `subfolder`, `token`); якщо `_commit_hash` не заданий — окремим викликом `cached_file(...)` по `config.json` отримує commit hash **якнайраніше**. Якщо доступний PEFT — додатково шукає `find_adapter_config_file(...)` і, знайшовши адаптер, перемикається на `base_model_name_or_path` |
 | 3 | Якщо конфіг не передано: виймає `dtype == "auto"` і `torch_dtype == "auto"` з kwargs (вони безглузді для конфіга), не перезаписує наявний `quantization_config`, викликає `AutoConfig.from_pretrained(..., return_unused_kwargs=True)`, а потім **повторно інжектує** конкретні `dtype`, `torch_dtype` і `quantization_config` як явні kwarg — щоб модель поважала їх понад значення з конфіга (виправлення #46459) |
 | 4 | Обчислює три прапорці: `has_remote_code` (є `auto_map` і в ньому є ім'я цього Auto-класу), `has_local_code` (клас конфігурації присутній у `_model_mapping`), `explicit_local_code` (`has_local_code` і клас **не** з пакета `transformers`), і викликає `resolve_trust_remote_code(...)` |
 | 5 | Якщо є remote code, увімкнений `trust_remote_code` і немає явного локального коду — динамічно імпортує клас із Hub через `get_class_from_dynamic_module`, реєструє його (`cls.register(config.__class__, model_class, exist_ok=True)`), викликає `register_for_auto_class`, додає `GenerationMixin` за потреби й делегує завантаження йому |
@@ -887,10 +880,10 @@ Unrecognized configuration class <class> for this kind of AutoModel: AutoModelFo
 Model type should be one of <перелік класів конфігурації>.
 ```
 
-Окремо про `trust_remote_code`: у `_LazyAutoMapping.register` є важлива умова — якщо
+Окремо про `trust_remote_code`: у `_LazyAutoMapping.register` є умова — якщо
 `getattr(key, "__module__", "").startswith("transformers.")`, реєстрація **пропускається**. Тобто спроба
-remote code зареєструвати власний клас під вбудований клас конфігурації ігнорується — саме для того,
-щоб `trust_remote_code=False` продовжував давати нативну модель.
+remote code зареєструвати власний клас під вбудований клас конфігурації ігнорується, щоб
+`trust_remote_code=False` давав нативну модель.
 
 `add_generation_mixin_to_remote_model` — окремий механізм сумісності: якщо динамічно завантажений клас
 не успадковує `GenerationMixin` напряму, але має власні `generate` або `prepare_inputs_for_generation`,
@@ -1026,11 +1019,11 @@ _ = kwargs.pop("use_fast", None)
 знайдено й ім'я закінчується на `Fast` — робиться повторна спроба **без** суфікса (для токенізаторів,
 збережених до v5).
 
-Числа з `TOKENIZER_MAPPING_NAMES` (витягнуті тим самим способом через `ast`): **264 ключі**, з яких
+Числа з `TOKENIZER_MAPPING_NAMES` (витягнуті тим самим способом через `ast`): **264 ключі**;
 найчастіші класи — `TokenizersBackend` (34 записи), `BertTokenizer` (25), `Qwen2Tokenizer` (21),
 `GPT2Tokenizer` (14), `CLIPTokenizer` (11). Точкові приклади: `bert` → `BertTokenizer`, `qwen3` →
-`Qwen2Tokenizer`, `qwen4_exp` → `Qwen3_5Tokenizer`. Для `deepseek_v4` у літералі таблиці значення немає
-(`None`), бо цей `model_type` додає вже згаданий цикл із `MODELS_WITH_INCORRECT_HUB_TOKENIZER_CLASS`.
+`Qwen2Tokenizer`, `qwen4_exp` → `Qwen3_5Tokenizer`. Для `deepseek_v4` значення немає (`None`), бо цей
+`model_type` додає вже згаданий цикл із `MODELS_INCORRECT`-списку.
 
 Два висновки: `TokenizersBackend` — найчастіший клас, що є прямим наслідком рішення v5 «відмовитися
 від поділу fast/slow і зосередитися на бекенді `tokenizers`»; і **`llama` у таблиці немає** — є лише
@@ -1097,9 +1090,9 @@ _ = kwargs.pop("use_fast", None)
 | dtype | Байтів на параметр | 7 млрд параметрів | 70 млрд параметрів |
 |---|---|---|---|
 | fp32 | 4 | ~26.08 ГБ | ~260.77 ГБ |
-| fp16 / bf16 | 2 | ~13.04 ГБ | ~130.38 ГБ |
+| fp16 / bf16 | 2 | ~13.04 ГБ | ~130.39 ГБ |
 | int8 / fp8 | 1 | ~6.52 ГБ | ~65.19 ГБ |
-| 4-бітна квантизація | ~0.5 | ~3.26 ГБ | ~32.59 ГБ |
+| 4-бітна квантизація | ~0.5 | ~3.26 ГБ | ~32.60 ГБ |
 
 Це **лише ваги**. KV-кеш, активації, проміжні тензори й фрагментація додаються зверху, тому реальна
 потреба завжди більша. Саме тому в документації для завантаження LLM типово стоять разом
@@ -1191,6 +1184,14 @@ PCIe 8-pin роз'ємів (інакше GPU не дасть повної про
 [Text generation (llm_tutorial)](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/llm_tutorial.md),
 [MIGRATION_GUIDE_V5.md](https://raw.githubusercontent.com/huggingface/transformers/main/MIGRATION_GUIDE_V5.md),
 [Building a GPU workstation](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/perf_hardware.md)
+
+**Куди далі:**
+
+- Розділ 20 — квантування: `quantization_config`, 4-бітні ваги й ціна втраченої точності.
+- Розділ 21 — fine-tuning: PEFT-адаптери, `Trainer` і застереження v5 щодо MoE.
+- Розділ 22 — Hub: сумісність із `huggingface_hub` v1+, Xet і `hf upload`.
+- Розділ 18 — Datasets: потокова обробка великих наборів через `KeyDataset` у `pipeline`.
+- Розділ 3 — chat-шаблони: те, що `apply_chat_template` у v5 повертає як `BatchEncoding`.
 
 **Джерела**
 

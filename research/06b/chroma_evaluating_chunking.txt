@@ -1,0 +1,159 @@
+### SOURCE: https://research.trychroma.com/evaluating-chunking
+
+- - - - - - - - - - - - - - - - - - Evaluating Chunking Strategies for Retrieval | Chroma- - 
+Products
+SyncDatabaseAgent
+DocsResearch 
+Resources
+Use casesUpdatesVideosChangelogDiscordGitHubSupportHidden
+Pricing 27kLog inSign up
+Chroma Technical Report
+July 3, 2024
+Evaluating Chunking Strategies for Retrieval
+Brandon Smith 
+Anton Troynikov 
+Despite document chunking being virtually ubiquitous as a pre-processing step, little work has been done to investigate its impact on retrieval performance. This is partially due to the structure of commonly used information retrieval benchmarks, which are aimed at whole-document retrieval tasks.
+In this work we present an evaluation approach which takes token-level relevance into account, and allows for the evaluation of several popular document chunking strategies. We demonstrate that the choice of chunking strategy can have a significant impact on retrieval performance, with some strategies outperforming others by up to 9% in recall.
+Evaluation of various popular chunking strategies on our evaluation, as well as new (★) strategies we propose. We show that the choice of chunking strategy can have significant impact on retrieval performance, in terms of accuracy and efficiency. Size denotes chunk size in tokens, in brackets indicates mean chunk size where it may vary by chunking strategy. Overlap denotes the chunk overlap in tokens. Bold values highlight the best performance in each category. See metrics section for details of each metric. Chunking is a commonly used pre-processing step when ingesting documents for retrieval in the context of AI applications. Chunking serves to divide documents into units of information, with semantic content suitable for embeddings-based retrieval and processing by an LLM.
+The purpose of this technical report is to evaluate the impact of the choice of chunking strategy on retrieval performance, in a way representative of how chunking and retrieval is used in the context of AI applications.
+While LLM context lengths have grown, and it has become possible to insert entire documents, or even text corpora into the context window, in practice doing so is often inefficient, and can distract the model. For any given query, only a small portion of the text corpus is likely to be relevant, but all tokens in the context window are processed for each inference. Ideally, for each query, the LLM would only need to process only the relevant tokens, and hence one of the primary goals of a retrieval system in AI applications is to identify and retrieve only the relevant tokens for a given query.
+Commonly used benchmarks like MTEB take a traditional information retrieval (IR) approach, where retrieval performance is typically evaluated with respect to the relevance of entire documents, rather than at the level of passages or tokens, meaning they cannot take chunking into account.
+In AI applications, excerpts containing all tokens relevant to a query may be found within or across many documents. Chunks may contain both relevant and irrelevant tokens, and relevant excerpts may be split across chunks.
+Traditional IR benchmarks also often focus on the relative ranking of the retrieved documents, however in practice, LLMs are relatively insensitive to the position of the relevant information within the context window. Additionally, the information relevant to a given query may be spread across multiple documents, making the evaluation of relative ranking between documents ambiguous.
+Motivated by these limitations, we propose a new evaluation strategy, evaluating retrieval performance at the token level. Our evaluation uses an LLM to generate, and subsequently filter, a set of queries and associated relevant exerpts from any given text corpus, and subsequently evaluates retrieval performance via precision, recall, and intersection-over-union (Jaccard index) on the basis of retrieved tokens.
+Our evaluation takes a fine-grained, token-wise approach to evaluating retrieval accuracy and efficiency, which allows it to take components such as chunking into account. The presence or absence or relevant tokens is more important than their relative ranking in AI applications.
+We generate a concrete dataset across various domains with varying data cleanliness, and use this to evaluate the performance of a several popular chunking strategies. We find that the choice of chunking strategy has significant impact on retrieval accuracy and efficiency. Notably, we find that default settings for certain popular chunking strategies can lead to relatively poor performance. We also find that heuristic chunking strategies such as the popular RecursiveCharacterTextSplitter often perform well in practice when parametrized appropriately.
+Finally, we propose and evaluate two novel chunking strategies; ClusterSemanticChunker, which uses embedding models directly to compose chunks up to a given size on the basis of semantic similarity, and LLMChunker, which prompts an LLM directly to perform chunking over a text corpus. We find that both produce competitive results on our evaluation.
+We provide all code to replicate our results as a GitHub repo, along with useful utilities for similar experiments. We hope that this preliminary work will inspire further research into factors affecting real world performance of retrieval systems for AI applications.
+Our in-depth technical report continues below. If you find our work useful, please consider citing us:
+ plaintext
+```
+@techreport{smith2024evaluating,
+ title = {Evaluating Chunking Strategies for Retrieval},
+ author = {Smith, Brandon and Troynikov, Anton},
+ year = {2024},
+ month = {July},
+ institution = {Chroma},
+ url = {https://trychroma.com/research/evaluating-chunking},
+}
+```
+Thanks to Douwe Kiela and Chris Manning for their feedback on this work.
+Interested in working on improving retrieval for AI applications? Chroma is Hiring
+Introduction#
+Besides answering questions and generating text [1], recently Large Language Models (LLMs) have emerged as a new type of computing primitive, capable of processing unstructured information in a "common sense" way, leading to the creation of AI applications. A key element of AI applications is so-called Retrieval-Augmented Generation (RAG)[2], wherein external data which is semantically relevant to the current task is retrieved for processing. In contrast to traditional IR, retrieval for AI applications often relies on storing and retrieving document parts (chunks), sometimes across several documents, in order to present the most relevant information to the LLM. Thus, in the AI application use-case, which tokens and chunks are returned is often as important as which documents.
+Information Retrieval (IR) in general, and passage retrieval in particular, are long-studied problems in natural language processing, with a considerable literature [3][4][5]. However, benchmarks like the Massive Text Embedding Benchmark (MTEB) [6] and MSMARCO[10] do not account for token efficiency, or chunking, and usually evaluate on the basis of the relevance of entire retrieved documents. Additionally, the normalized Discounted Cumulative Gain (nDCG@K) metric, commonly used in IR [7], is less useful in the context of RAG because the rank order of retrieved documents is less important. It has been shown that as long as the relevant tokens are present, and the overall context is of reasonable length, LLMs can accurately process the information regardless of token position [8].
+To address these shortcomings, we propose a new evaluation designed to capture the essential details of retrieval performance in the AI application context, consisting of a generative dataset, and a new performance measure. We describe the pipeline that generates the dataset, allowing others to generate domain specific evaluations for their own data and use cases. Because the dataset is generated, in general it should not exist in the training set of any general-purpose embedding model. Along with the dataset, we introduce a new measure of performance, based on the Jaccard similarity coefficient [11] at the token level, which we refer to as Intersection over Union (IoU) for short, as well as evaluating recall and precision at the token rather than document level. By analogy to its use in computer vision, we can think of text chunks as bounding boxes, and the IoU as a measure of how well the bounding boxes of the retrieved chunks overlap with the bounding boxes of the relevant tokens.
+As an application of our new evaluation strategy, we compare the performance of popular document chunking methods, such as the RecursiveCharacterTextSplitter. We also develop and evaluate two new chunking methods, the ClusterSemanticChunker which takes the embedding model used for retrieval into account, and LLMChunker, which prompts an LLM directly to perform chunking over a text corpus.
+Contributions#
+We present the following:
+- 
+A framework for generating domain specific datasets to evaluate retrieval quality in the context of AI applications, as well as a new measure of retrieval quality which takes chunking strategies into account.
+- 
+We use this framework to generate a concrete evaluation dataset for a limited set of popular domains, and subsequently we evaluate several commonly-used document chunking strategies according to the proposed measures.
+- 
+We present and evaluate new chunking strategies, including an embedding-model aware chunking strategy, the ClusterSemanticChunker, which uses any given embedding model to produce a partition of chunks, as well as the LLMChunker which prompts an LLM to perform the chunking task directly.
+- 
+Finally, we provide the complete codebase for this project.
+Related Work#
+Current popular Information Retrieval (IR) benchmarks include the Massive Text Embedding Benchmark (MTEB) [6] and Benchmarking-IR (BEIR) [7]. MTEB evaluates text embedding models across 58 datasets and 8 tasks. BEIR includes 18 datasets across 9 retrieval tasks. The MTEB text retrieval datasets contain all publicly available BEIR retrieval datasets. Their primary metric is normalized Discounted Cumulative Gain at rank 10 (nDCG@10), and they both provide Mean Average Precision at rank k (MAP@k), precision@k and recall@k additionally.
+The nDCG@K metric evaluates the relevance of K retrieved documents, giving more weight to higher-ranked documents, penalizing relevant results that appear lower in the ranking. Similarly, MAP@K takes the average of the precision at each position in the top K retrieved documents. As mentioned in the introduction, the order of retrieved documents is less important in the context of RAG. Additionally, existing benchmarks evaluate retrieval system performance at the document level, while for AI applications, only a fraction of the tokens in any document may be relevant to a particular query, and relevant tokens may be found across an entire corpus. Our proposed evaluation metrics aim to take this token-level relevance into account.
+Along with information retrieval in general, there has been extensive work on passage retrieval [9], including at large scales and in a machine learning context as with the MS MARCO dataset [10]. However, this work has mostly been considered as either an intermediate step to document retrieval, or in the general context of search and retrieval, rather than in the specific context of retrieval for AI applications, and without reference to token efficiency.
+More recently, LLMs have been used to directly evaluate retrieval performance, for example by prompting the LLM for a binary classification of relevancy as in ARAGOG [12]. LLMs have also been used to generate synthetic data from a text corpus, as well as evaluating the final generated output of a RAG pipeline as in RAGAS [13]. In contrast, our proposed evaluation focuses only on retrieval, with a limited step to synthesize queries from document corpora, rather than complex multi-step synthesis and evaluation pipelines which may be sensitive to model particulars and prompting. We evaluate retrieval directly, without relying on an LLM. In principle, our proposed approach can be composed with others to produce a more complete evaluation.
+Despite the fact that chunking is often the first step of data ingestion in RAG pipelines, the literature on evaluating chunking strategies is sparse. Greg Kamradt's work on semantic chunking was incorporated by LangChain [14], and Aurelio AI developed its own version [15]. Additionally, Unstructured explored chunking in financial contexts, focusing on metadata about chunks based on their document position rather than optimal text partitioning [16]. These efforts highlight the emerging interest evaluations of chunking for RAG, yet there remains a significant gap in comprehensive evaluation, which our works is intended to address.
+Evaluating Retrieval for AI Applications#
+We introduce our evaluation framework for retrieval in the context of AI applications, consisting of a generative evaluation dataset from a supplied corpus of documents, as well as a new metric based on the well-known Jaccard similarity coefficient, token-wise Intersection over Union (IoU) which takes chunking strategies into account, and corresponds to the token efficiency of the retrieval system. We use this metric alongside other measures such as recall to evaluate the effectiveness of retrieval systems in the AI application context.
+This approach to partially synthetic data generation ensures that data generated this way was not available at training time for any general-purpose embedding model, preventing possible bias. Our approach also allows for domain-specific evaluation, making it suitable for evaluating retrieval quality on any dataset. Finally, our approach can be used in combination with other evaluation approaches, including the use of human labels.
+Dataset Generation#
+For a given text corpus consisting of a set of documents, we sample from an LLM to generate a query relevant to the documents, as well as excerpts from the corpus which are relevant to the generated query. We present the LLM with a prompt consisting of documents from the evaluation corpus, instructions to generate factual queries about the corpus, and to provide excerpts corresponding to the generated questions.
+To ensure the queries are unique, we include a random sample of up to 50 previously generated queries in the prompt. We accept only excerpts which have full-text matches within the corpus as valid. We reject any query and all associated excerpts, if any excerpt is invalid.
+Query: What were the main characteristics of the armor used on the ship Atlanta?
+Excerpts:
+- "Her armor was backed by 3 inches ( 76 mm ) of oak , vertically oriented , and
+two layers of 7 @.@ 5 inches ( 191 mm ) of pine , alternating in direction "
+- "The upper portion of Atlanta 's hull received two inches of armor "
+An example query and set of excerpts generated from the Wikitexts corpus, one of the 474 queries in our generated dataset, sampled from GPT-4-Turbo in JSON mode. Excerpts are exact matches from the Wikitexts corpus.
+In order to reduce the instance of compound queries, e.g. "What was the date and significance of the Gettysburg Address?", which may complicate evaluation, we prompt the LLM to avoid using the connecting form of 'and', allowing it only when used as part of a proper noun.
+For details of our prompt, see the appendix.
+Dataset Prefiltering#
+To ensure high quality queries and excerpts we filter the outputs of the initial generation step.
+Despite prompting to avoid duplicate generated queries, the LLM will occasionally still generate duplicates or near-duplicates. We de-duplicate the generated dataset by embedding each query, and computing the cosine similarity between the embeddings of all pairs of queries. Subsequently, we filter all queries and associated excerpts where the cosine similarity is above a certain threshold value.
+We note that the LLM will occasionally produce excerpts which are out-of-context or irrelevant to the query. In order to mitigate this, we embed each query and its associated excerpts, and compute the cosine similarity from the query to each of them. We filter any query and all its associated excerpts, where the query's cosine similarity with any of its associated excerpts is less than a set threshold.
+The choice of threshold values for both duplicate queries and excerpt relevance is dataset dependent. We provide details of the threshold values used in the details of our concrete dataset. We use OpenAI's text-embedding-3-large as the embedding model.
+We observe that the latter threshold sets a minimum cosine similarity between a query and its related excerpts. Although this might introduce a sampling bias, it is important to note that each excerpt is part of one or more text chunks, with each chunk being one among many from a given corpus. Additionally, because we perform our evaluation over multiple embedding models, the impact of this bias is negligible in practice.
+We note also that although we filter aggressively to ensure generated excerpts are relevant to each query, we do not search for other exceprts in the corpus which might be relevant to the query but were not generated. This is a limitation of our current approach, which future work may mitigate by using supervised or semi-supervised methods.
+Metrics#
+For a given query related to a specific corpus, only a subset of tokens within that corpus will be relevant. Ideally, for both efficiency and accuracy, the retrieval system should retrieve exactly and only the relevant tokens for each query across the entire corpus.
+In practice, the unit of retrieval for AI applications is usually a text chunk containing the relevant excerpt. This chunk will often contain superfluous tokens which require additional compute to process, and which may contain irrelevant distractors which may reduce overall performance of the RAG application [17]. Additionally, where a chunking strategy uses overlapping chunks, the retriever may return redundant tokens, for example if tokens from a relevant excerpt are in more than one chunk due to overlap. Finally, a given retriever may not retrieve all necessary excerpts for a given query.
+We therefore seek a metric which can take into account not only whether relevant excerpts are retrieved, but also how many irrelevant, redundant, or distracting tokens are also retrieved. Inspired by a similar metric in computer vision and data mining, the Jaccard similarity [11], we propose the token-wise Intersection over Union (IoU) metric for evaluating the efficiency of a retrieval system [18].
+We compute IoU for a given query and chunked corpus 
+ as follows. For a query $q$, we denote the set of tokens among all relevant excerpts $t_e$. The set of all retrieved chunks consists of tokens $t_r$.
+We compute IoU for a given query in the chunked corpus as:
+Note that in the numerator, we count each $t_e$ among $t_r$ only once, while counting all retrieved tokens in $|t_r|$ in the denominator. This accounts for the case where redundant excerpt tokens appear in multiple retrieved chunks, for example where an overlapping chunking strategy is used.
+Along with IoU, we propose to use precision and recall metrics in a similar way as they are traditionally used in information retrieval, but at the token rather than the document level.
+We define precision as:
+And recall as:
+When performing our evaluations, we report the mean of IoU, Precision, and Recall, across all queries and all corpora in our dataset. Additionally, we report precision for the case that all chunks containing excerpt tokens are successfully retrieved as Precision$_\Omega$. This gives an upper bound on token efficiency given perfect recall.
+We note that we could also compute the F-score ($F_1$) as:
+But in practice, IoU provides similar information while preserving a more intuitive 'bounding box' analogy.
+Chunking Evaluation Dataset#
+We use our evaluation framework to generate a dataset for evaluating chunking strategies for retrieval for AI applications.
+Corpora#
+We selected five diverse corpora for our dataset, ensuring a mix of both clean and messy text sources. Clean corpora contain well-structured text, while messy corpora reflect the unstructured nature of text typically obtained from web scraping. Each corpus is briefly described below. We provide the length of each corpus in tokens, measured with Tiktoken for "cl100k_base" (the standard used by OpenAI's GPT-4). All Hugging Face corpora are subsets of the full corpora, and the lengths provided refer to the subsets we used. These subsets always start from the beginning of the text as it is on Hugging Face.
+While these corpora are relatively small in comparison to most large-scale retreival benchmarks, our aim is to demonstrate the utility of our evaluation framework on representative data, provide easily reproduced results, and to provide a starting point for future work. We do not claim that the concrete dataset we present is comprehensive, but rather that it demonstrates the utility of our evaluation framework.
+State of the Union Address 2024 [19]#
+This is a plain transcript of the State of the Union Address in 2024. It is well-structured and clear. This corpus is 10,444 tokens long.
+Wikitext [20]#
+The WikiText language modeling dataset consists of over 100 million tokens from verified Good and Featured articles on Wikipedia. Our subset is the first 26,649 tokens of this text as it appears on Hugging Face.
+Chatlogs [21]#
+The UltraChat 200k dataset is a high quality filtered subset of UltraChat consisting of 1.4M dialogues generated by ChatGPT. Our corpus includes all surrounding JSON syntax, making it a more accurate representation of real-world raw text. Our subset is the first 7,727 tokens of this text.
+Finance [22]#
+The ConvFinQA dataset is designed to study numerical reasoning in conversational question answering within the finance domain. This corpus includes complex multi-turn questions and answers based on financial reports, focusing on modeling long-range numerical reasoning paths. Our subset is the first 166,177 tokens of this text.
+Pubmed [23]#
+The PMC Open Access Subset is a collection of biomedical and life sciences journal literature from the National Library of Medicine. Our subset is the first 117,211 tokens of this text.
+Generation & Prefiltering#
+To determine the duplicate threshold, we perform a binary search over threshold values by sampling from pairs of generated queries for a given threshold, manually examine the sampled pairs, and adjusting the threshold according to whether the queries in each pair are sufficiently distinct.
+Distributions of cosine similarity between queries and their associated excerpts, Pubmed corpus.
+Distribution of cosine similarity between all query pairs, Pubmet corpus.
+A similar approach is used for the excerpt filter. Future work could automate this process. We note also that in the adopted threshold values are similar across corpora, suggesting a heuristic value could be used in practice.
+Corpus | No. of Tokens | No. of Queries | Ex. Thresh. | Dup. Thresh. | 
+State of the Union | 10,444 | 76 | 0.40 | 0.70 | 
+Wikitext | 26,649 | 144 | 0.42 | 0.73 | 
+Chatlogs | 7,727 | 56 | 0.43 | 0.71 | 
+Finance | 166,177 | 97 | 0.42 | 0.70 | 
+Pubmed | 117,211 | 99 | 0.40 | 0.67 | 
+Total | 328,208 | 472 | | | 
+Number of tokens, number of queries, excerpt threshold and duplicate query threshold for each corpus.
+All text excerpts and queries are available in the GitHub repository.
+Time & Cost Analysis#
+The time required for query generation varied between 3 to 16 seconds per question, averaging around 10 seconds. The longer times were primarily due to the need to disqualify questions based on invalid excerpts, which required additional processing to generate valid questions.
+For our base prompt, we used 703 tokens (measured with OpenAI's cl100k Tokenizer). During query generation, we included a random 4,000-character subset from the original corpus and 50 sampled queries from the dataset, resulting in an average prompt size of 2,000 tokens. The average response length was 200 tokens, giving an overall input length of 2,000 tokens and an output length of 200 tokens per question.
+At the time of writing, the cost of generating a single question using GPT-4 is approximately \$0.01. Consequently, creating a dataset of 1,000 questions would cost around \$10. Note that this estimate does not account for the subsequent filtering steps, which would reduce the final question count.
+Chunking Algorithms#
+Below we present the chunking methods used in this report. We evaluate general-purpose, commonly-used chunkers, as well as novel approaches . Any mentions of tokens in this section refer to that within the context of OpenAI's cl100k Tokenizer. The symbol ★ indicates that the subsequent algorithm is a new chunking method we developed for this study.
+RecursiveCharacterTextSplitter & TokenTextSplitter [24]#
+RecursiveCharacterTextSplitter and TokenTextSplitter are some of the most popular chunking methods, and the default used by many RAG systems. These chunking methods are insensitive to the semantic content of the corpus, relying instead on the position of character sequences to divide documents into chunks, up to a maximum specified length. We follow the implementation of the popular Langchain library.
+We found that it was necessary to alter some defaults to achieve fair results. By default, the RecursiveCharacterTextSplitter uses the following separators: ["\n\n", "\n", " ", ""]. We found this would commonly result in very short chunks, which performed poorly in comparison to TokenTextSplitter which produces chunks of a fixed length by default. Therefore we use ["\n\n", "\n", ".", "?", "!", " ", ""] as the set of separators.
+KamradtSemanticChunker [14]#
+Greg Kamradt proposed a novel semantic chunking algorithm, which was later incorporated into LangChain. The chunker works by first splitting the corpus by sentence. It functions by computing the embedding of a sliding window of tokens over a document, and searching for discontinuities in the cosine distances between consecutive windows. By default, the threshold for detecting a discontinuity is set to any distance above the 95th percentile of all consecutive distances. This is a relative metric and can lead to larger chunks in bigger corpora.
+★ KamradtModifiedChunker#
+It is desirable for users to be able to set the chunk length directly, in order to ensure that chunks fit within the context window of the embedding model. To address this, we modify the KamradtSemanticChunker by implementing a binary search over discontinuity thresholds such that the largest chunk is shorter than the specified length.
+★ ClusterSemanticChunker#
+We further extend the principle of embeddings-based semantic chunking by observing that the KamradtSemanticChunker algorithm is greedy in nature, which may not produce the optimal chunking under the objective of preserving chunks with high internal similarity. We propose a new algorithm, the ClusterSemanticChunker, which aims to produce globally optimal chunks by maximizing the sum of cosine similarities within chunks, up to a user-specified maximum length. Intuitively, this preserves as much similar semantic information as possible across the document, while compacting relevant information in each chunk.
+Documents are divided into pieces of at most 50 tokens using the RecursiveCharacterTextSplitter, and pieces are individually embedded. Subsequently, we use a dynamic programming approach to maximize the pairwise cosine similarity between all pairs of pieces within any chunk. Code for this algorithm is available in the GitHub repository
+A limitation to this method is that the globally optimal packing relies on the global statistics of the corpus, requiring chunks to be re-computed as data is added. This limitation may be improved upon by maintaining an appropriate data-structure over the smaller pieces as data is added or removed; we leave this to future work.
+★ LLMSemanticChunker#
+In the spirit of "just [ask] the model", we experimented with directly prompting an LLM to chunk the text. We found that a naive approach where the LLM is prompted to repeat the corpus with a <|split|> token was costly, slow, and suffered from hallucinations in the produced text.
+To resolve this we broke the text into chunks of size 50 in tokens using a RecursiveCharacterTextSplitter. Then we re-joined the text but surrounded by chunk tags resulting in text like the following:
+<start_chunk_0>On glancing over my notes of the seventy odd cases in which I have during the last eight years <end_chunk_0><start_chunk_1>studied the methods of my friend Sherlock Holmes, I find many tragic, some comic, a large number <end_chunk_1><start_chunk_2> . . .
+We then instruct the LLM to return the indexes of chunks to split on, in the form
+split_after: 3, 5
+We found both GPT-4o and Llama 3 8B Instruct consistently adhered to this format. Complete prompts and code for this algorithm are available in the GitHub repository
+Results#
+We present the mean of Recall, Precision, Precision$_\Omega$, and IoU scores for each chunking method, over all queries and corpora in our evaluation. ± indicates the standard deviation. We report the results for n=5 retrieved chunks, using OpenAI's text-embedding-3-large as the embedding model.
+Chunking | Size | Overlap | Recall | Precision | Precision$_\Omega$ | IoU | 
+Recursive | 800 (~661) | 400 | 85.4 ± 34.9 | 1.5 ± 1.3 | 6.7 ± 5.2 | 1.5 ± 1.3 | 
+TokenText | 800 | 400 | 87.9 ± 31.7 | 1.4 ± 1.1 | 4.7 ± 3.1 | 1.4 ± 1.1 | 
+Recursive | 400 (~312) | 200 | 88.1 ± 31.6 | 3.3 ± 2.7 | 13.9 ± 10.4 | 3.3 ± 2.7 | 
+TokenText | 400 | 200 | 88.6 ± 29.7 | 2.7 ± 2.2 | 8.4 ± 5.1 | 2.7 ± 2.2 | 
+Recursive | 400 (~276) | 0 | 89.5 ± 29.7 | 3.6 ± 3.2 | 17.7 ± 14.0 | 3.6 ± 3.2 | 
+TokenText | 400 | 0 | 89.2 ± 29.2 | 2.7 ± 2.2 | 12.5 ± 8.1 | 2.7 ± 2.2
