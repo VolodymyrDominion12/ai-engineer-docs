@@ -911,9 +911,7 @@ when possible or set `gen_ai.response.id` when span id is not available». Об�
 
 | Метрика | Тип | Одиниця |
 |---|---|---|
-| `gen_ai.client.operation.duration` | Histogram | `s` |
-| `gen_ai.client.operation.time_to_first_chunk` | Histogram | `s` |
-| `gen_ai.client.operation.time_per_output_chunk` | Histogram | `s` |
+| `gen_ai.client.operation.duration` · `time_to_first_chunk` · `time_per_output_chunk` | Histogram | `s` |
 | `gen_ai.client.inference.usage.input_tokens` | Counter | `{token}` |
 | `gen_ai.client.inference.usage.output_tokens` | Counter | `{token}` |
 | `gen_ai.client.inference.usage.cache_read.input_tokens` | Counter | `{token}` |
@@ -925,8 +923,8 @@ when possible or set `gen_ai.response.id` when span id is not available». Об�
 
 Останні три — для тих, хто сам роздає моделі. Для `gen_ai.client.operation.duration` і
 `gen_ai.client.operation.time_to_first_chunk` специфікація задає явні межі бакетів:
-`[0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24, 20.48, 40.96, 81.92]`
-секунд. Без цих меж перцентилі вашого застосунку й застосунку колеги непорівнювані.
+`[0.01, 0.02, 0.04, 0.08, 0.16, 0.32, 0.64, 1.28, 2.56, 5.12, 10.24, 20.48, 40.96, 81.92]` секунд.
+Без цих меж перцентилі вашого застосунку й застосунку колеги непорівнювані.
 
 **Робочий приклад.** Скорочений фрагмент ноутбука `notebooks/23-observability.ipynb`: мінімальний
 перехоплювач спанів, що повторює форму OTLP-структур, і трейс одного запиту агента.
@@ -994,17 +992,18 @@ def start_span(name, *, kind="INTERNAL", attributes=None, parent=None):
 
 ```
 Спанів у трейсі: 4
-trace_id       : 13475d1af737132b1ccdff6003986f22
+trace_id       : 5bcaa0b2845700bf985484601c7c2c09
 
-retrieval H7STPQYOND         span=f7e3f1f4 parent=f5f42aa3  10.09 ms  attrs=5
-execute_tool track_shipment  span=625117e7 parent=aa1aff60   5.14 ms  attrs=7
-chat gpt-4                   span=aa1aff60 parent=f5f42aa3  35.32 ms  attrs=19
-invoke_agent support-bot     span=f5f42aa3 parent=—  45.51 ms  attrs=7
+retrieval H7STPQYOND         span=07053bb4 parent=f5f42aa3  10.00 ms  attrs=5
+execute_tool track_shipment  span=29275dd6 parent=18164cc5   5.00 ms  attrs=7
+chat gpt-4                   span=18164cc5 parent=f5f42aa3  35.00 ms  attrs=19
+invoke_agent support-bot     span=f5f42aa3 parent=—  45.00 ms  attrs=7
 ```
 
 `execute_tool` — дитина `chat`, а `chat` і `retrieval` — діти `invoke_agent`. Батьківство не задано
 жодного разу явно: воно взялося з контексту. Тривалість кожного кроку окрема, тому «запит триває
-45 мс» розкладається на 35 мс моделі, 10 мс пошуку й 5 мс інструмента.
+45 мс» розкладається на 35 мс моделі, 10 мс пошуку й 5 мс інструмента. `trace_id` тут
+детермінований, а тривалості передані явно — тому вивід відтворюється при кожному запуску.
 
 Події з вмістом збираються окремо від атрибутів спану: у прогоні ноутбука спан `chat gpt-4`
 має 4 атрибути й 2 події — `gen_ai.client.inference.operation.details` (з ключами
@@ -1014,7 +1013,7 @@ invoke_agent support-bot     span=f5f42aa3 parent=—  45.51 ms  attrs=7
 Метрики рахуються з тих самих спанів: у прогоні ноутбука counter
 `gen_ai.client.inference.usage.input_tokens` = 6780, `output_tokens` = 1866,
 `cache_read.input_tokens` = 1200, а гістограма `gen_ai.client.operation.duration` накопичувальна:
-9 із 12 запитів упали в перші чотири бакети, решта три — у бакет `<= 0.08s`, далі всі 12 у `+Inf`.
+10 із 12 запитів упали в бакет `<= 0.01s`, решта два — у `<= 0.02s`, далі всі 12 у `+Inf`.
 
 **Перевірка назв машиною.** Найдешевший спосіб не вигадати ключ — звіряти його з реєстром
 регуляркою (фрагмент самоперевірки ноутбука):

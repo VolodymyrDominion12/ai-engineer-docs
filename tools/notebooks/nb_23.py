@@ -154,10 +154,12 @@ for question in (
 # Такі самі довжини використовує Langfuse.
 import contextvars
 import hashlib
+import itertools
 import secrets
 import time
 from contextlib import contextmanager
 from dataclasses import dataclass, field
+from typing import Callable
 
 
 def new_trace_id() -> str:
@@ -211,7 +213,7 @@ class Span:
     events: list = field(default_factory=list)
     status: dict = field(default_factory=lambda: {"code": "UNSET"})
     instrumentation_scope: str = _INSTRUMENTATION_SCOPE
-    clock: "Callable[[], int]" = time.time_ns    # джерело часу (можна підмінити)
+    fixed_duration_ns: int | None = None         # навчальний режим: тривалість задано явно
 
     # ── зміна стану ──────────────────────────────────────────────────────
     def set_attribute(self, key: str, value) -> None:
@@ -220,13 +222,18 @@ class Span:
     def add_event(self, name: str, attributes: dict | None = None) -> None:
         self.events.append({
             "name": name,
-            "timeUnixNano": self.clock(),
+            "timeUnixNano": time.time_ns(),
             "attributes": dict(attributes or {}),
         })
 
     def end(self) -> None:
-        if self.end_ns is None:
-            self.end_ns = self.clock()
+        if self.end_ns is not None:
+            return
+        if self.fixed_duration_ns is not None:
+            # Навчальний режим: тривалість задана явно, щоб вивід був відтворюваним.
+            self.end_ns = self.start_ns + self.fixed_duration_ns
+        else:
+            self.end_ns = time.time_ns()
 
     @property
     def duration_ms(self) -> float:
@@ -311,13 +318,12 @@ class ConsoleSpanExporter:
 class Tracer:
     """Мінімальний трасувальник: створює спани й тримає контекст."""
 
-    def __init__(self, exporter: ConsoleSpanExporter, clock=time.time_ns) -> None:
+    def __init__(self, exporter: ConsoleSpanExporter) -> None:
         self.exporter = exporter
-        self.clock = clock
 
     @contextmanager
     def start_span(self, name, *, kind="INTERNAL", attributes=None,
-                   trace_id=None, parent=None):
+                   trace_id=None, parent=None, duration_ms=None):
         parent_span = parent if parent is not None else _CURRENT_SPAN.get()
         if trace_id is None:
             trace_id = parent_span.trace_id if parent_span else new_trace_id()
@@ -328,9 +334,9 @@ class Tracer:
             trace_id=trace_id,
             span_id=new_span_id(),
             parent_span_id=parent_span.span_id if parent_span else None,
-            start_ns=self.clock(),
+            start_ns=time.time_ns(),
             attributes=dict(attributes or {}),
-            clock=self.clock,
+            fixed_duration_ns=None if duration_ms is None else int(duration_ms * 1e6),
         )
         token = _CURRENT_SPAN.set(span)
         try:
@@ -386,12 +392,24 @@ AGENT_NAME = "support-bot"
 CONVERSATION_ID = "conv_5j66UpCpwteGg4YSxUnt7lPY"   # приклад із конвенцій
 DATA_SOURCE_ID = "H7STPQYOND"                        # приклад із конвенцій
 
+# Для відтворюваності виводу підмінюємо генератор id: id детерміновані,
+# а тривалість кожного спану задаємо явно через duration_ms. У продакшні
+# тривалість береться з реального годинника — аргумент тут лише навчальний.
+_DEMO_IDS = itertools.count(0xF5F42AA3A1B2C3D4, 0x1111111111111111)
+
+
+def new_span_id() -> str:                      # перекриваємо генератор для цієї демонстрації
+    return f"{next(_DEMO_IDS) & 0xFFFFFFFFFFFFFFFF:016x}"
+
+
 exporter = ConsoleSpanExporter(verbose=False)
 tracer = Tracer(exporter)
 
 with tracer.start_span(
     f"invoke_agent {AGENT_NAME}",
     kind="CLIENT",
+    trace_id=deterministic_trace_id("demo-request"),
+    duration_ms=45,
     attributes={
         "gen_ai.operation.name": "invoke_agent",
         "gen_ai.provider.name": "openai",
@@ -403,27 +421,28 @@ with tracer.start_span(
     },
 ) as agent_span:
 
-    # 1) Пошук у векторній базі — окремий спан, окрема затримка
+    # 1) Пошук у векторній базі — окремий спан, окрема затримка.
     with tracer.start_span(
         f"retrieval {DATA_SOURCE_ID}",
         kind="CLIENT",
+        duration_ms=10,
         attributes={
             "gen_ai.operation.name": "retrieval",
             "gen_ai.data_source.id": DATA_SOURCE_ID,
             "gen_ai.request.model": MODEL_ID,
         },
     ) as retrieval_span:
-        time.sleep(0.01)
         retrieval_span.set_attribute("gen_ai.retrieval.query.text", "коли прибуде посилка")
         retrieval_span.set_attribute("gen_ai.retrieval.documents", [
             {"id": "doc_123", "score": 0.95},
             {"id": "doc_456", "score": 0.87},
         ])
 
-    # 2) Виклик моделі — головний спан, за яким рахують гроші
+    # 2) Виклик моделі — головний спан, за яким рахують гроші.
     with tracer.start_span(
         f"chat {MODEL_ID}",
         kind="CLIENT",
+        duration_ms=35,
         attributes={
             # Required
             "gen_ai.operation.name": "chat",
@@ -449,13 +468,13 @@ with tracer.start_span(
             "server.port": 443,
         },
     ) as chat_span:
-        time.sleep(0.03)
         chat_span.set_attribute("gen_ai.prompt.name", "analyze-code")
 
-        # 3) Виклик інструмента — теж спан, і теж окрема затримка
+        # 3) Виклик інструмента — теж спан, і теж окрема затримка.
         with tracer.start_span(
             "execute_tool track_shipment",
             kind="INTERNAL",
+            duration_ms=5,
             attributes={
                 "gen_ai.operation.name": "execute_tool",
                 "gen_ai.tool.name": "track_shipment",
@@ -465,7 +484,6 @@ with tracer.start_span(
                 "gen_ai.tool.call.arguments": {"tracking_number": "NP-000123"},
             },
         ) as tool_span:
-            time.sleep(0.005)
             tool_span.set_attribute("gen_ai.tool.call.result",
                                     {"status": "in_transit", "eta_days": 2})
 
@@ -673,21 +691,17 @@ JSON-рядок, **якщо** структура не підтримується
     code(
         '''
 # ── Генеруємо кілька запитів з різною затримкою ──────────────────────────
-import random
-
-random.seed(23)                                  # відтворюваність виводу
-
+# Тривалість i-го виклику задаємо явно: (i+1) мілісекунд — вивід відтворюваний.
 exporter = ConsoleSpanExporter(verbose=False)
 tracer = Tracer(exporter)
 
 for i in range(12):
-    with tracer.start_span(f"chat {MODEL_ID}", kind="CLIENT",
+    with tracer.start_span(f"chat {MODEL_ID}", kind="CLIENT", duration_ms=i + 1,
                            attributes={
                                "gen_ai.operation.name": "chat",
                                "gen_ai.provider.name": "openai",
                                "gen_ai.request.model": MODEL_ID,
                            }) as span:
-        time.sleep(random.uniform(0.001, 0.05))
         span.set_attribute("gen_ai.usage.input_tokens", 400 + i * 30)
         span.set_attribute("gen_ai.usage.cache_read.input_tokens", 100)
         span.set_attribute("gen_ai.usage.output_tokens", 150 + i)

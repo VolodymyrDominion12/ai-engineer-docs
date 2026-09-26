@@ -3,12 +3,12 @@
 У v5 змінилися не окремі параметри, а самі шари бібліотеки: тільки PyTorch як бекенд, один
 токенізаційний файл замість пари «повільний/швидкий», новий механізм завантаження ваг, окремий реєстр
 реалізацій уваги й нове покоління API для інференсу (`transformers serve`, безперервний батчинг, paged
-attention). Код, написаний під 4.x, ламається не в одному місці, а десятьма різними способами — від
-видаленого `load_in_8bit` до зміненого типу повернення `apply_chat_template`.
+attention). Код під 4.x ламається не в одному місці, а десятьма різними способами — від видаленого
+`load_in_8bit` до зміненого типу повернення `apply_chat_template`.
 
-Розділ дає перелік ламальних змін, чеклист міграції й практику по чотирьох точках входу: `pipeline`,
-`generate`, інтерфейс уваги та auto-класи. Факти взяті з `MIGRATION_GUIDE_V5.md`, анонсу v5, офіційних
-гайдів і **реальних сирців `transformers`** (`research/hf5src/`).
+Розділ дає перелік ламальних змін, чеклист міграції й практику по `pipeline`, `generate`, інтерфейсу
+уваги та auto-класах. Факти взяті з `MIGRATION_GUIDE_V5.md`, анонсу v5, офіційних гайдів і **реальних
+сирців `transformers`** (`research/hf5src/`).
 
 ### 19.1 Що змінилося у v5: перелік ламальних змін
 
@@ -70,10 +70,8 @@ v5.0.0rc-0 — «п'ять років потому» (блог опубліко�
   `config.text_config.vocab_size`); моделі без генерації більше не мають `generation_config`.
 - **Застереження самих RC:** PEFT + MoE з адаптерами ламається (issue 42491); tensor/expert parallel + MoE
   не працюють як очікується, поки підтримку узгоджують із vLLM; шляхи `transformers.tokenization_utils`
-  і `transformers.tokenization_utils_fast` більше не існують (перенаправлені на
-  `tokenization_utils_sentencepiece` та `tokenization_utils_tokenizers`); власні `PreTrainedModel`
-  ініціалізуються загальною схемою — щоб зберегти свою, перевизначте `_init_weights` порожнім методом
-  (issue 42418).
+  і `transformers.tokenization_utils_fast` більше не існують; власні `PreTrainedModel` ініціалізуються
+  загальною схемою — щоб зберегти свою, перевизначте `_init_weights` порожнім методом (issue 42418).
 
 **Робочий приклад.** Найкорисніша дія з цим переліком — перетворити його на аудит: витягти з гайду всі
 згадані ідентифікатори API. Код нижче працює без `transformers` і без GPU.
@@ -109,8 +107,6 @@ AutoModelForVision2Seq, AutoModelWithLMHead, PYTORCH_TRANSFORMERS_CACHE, TRANSFO
 - Оновити `transformers`, не перевіривши код на `load_in_4bit` / `load_in_8bit`: помилка виникне лише
   в момент завантаження моделі, тобто у продакшні.
 - Сподіватися, що `model.config.rope_theta` ще працює — для частини моделей його немає.
-- Використовувати `tokenizer.batch_decode` «як раніше» на списку входів: метод лишився, але семантика
-  уніфікована з `decode`.
 - Вважати `trust_remote_code` безпечним: гайд прямо перелічує несумісність старих remote-code
   репозиторіїв через видалені шляхи `tokenization_utils*`.
 
@@ -189,10 +185,9 @@ print(tokenizer.decode(tokenizer.encode(inputs)))
   записується лише тоді, коли `tokenizer.json` немає; `add_bos_token` і `add_eos_token` більше не
   зберігаються в `tokenizer_config.json`.
 - `special_tokens_map` містить лише **іменовані** спецтокени; додаткові — в `extra_special_tokens`.
-  `all_special_tokens` включає і ті, і ті. `special_tokens_map_extended` і `all_special_tokens_extended`
-  видалені; об'єкти `AddedToken` беріть із `_special_tokens_map` / `_extra_special_tokens`.
-- `extra_special_tokens` приймає **лише** список або кортеж і призначений для ініціалізації; іменовані
-  токени моделі передавайте окремими keyword-аргументами.
+  `special_tokens_map_extended` і `all_special_tokens_extended` видалені; об'єкти `AddedToken` беріть із
+  `_special_tokens_map` / `_extra_special_tokens`. `extra_special_tokens` приймає **лише** список або
+  кортеж.
 - Видалено автсинхронізацію налаштувань бекенда (`add_prefix_space`, `do_lower_case`, `strip_accents`,
   `tokenize_chinese_chars`) після ініціалізації.
 
@@ -205,9 +200,8 @@ print(tokenizer.decode(tokenizer.encode(inputs)))
 `tokenizer(src_texts, text_target=tgt_texts, max_length=128, return_tensors="pt")` із подальшим
 `model_inputs["labels"] = model_inputs.pop("input_ids_target")`; `create_token_type_ids_from_sequences()`
 прибрано з базового класу (реалізуйте в підкласі); `prepare_for_model()`,
-`build_inputs_with_special_tokens()`, `truncate_sequences()` переїхали в `tokenization_python.py` для
-`PythonBackend`; `as_target_tokenizer()` замінено на `tokenizer(text_target=...)`; `parse_response()`
-прибрано з базового класу.
+`build_inputs_with_special_tokens()`, `truncate_sequences()` переїхали в `tokenization_python.py`;
+`as_target_tokenizer()` замінено на `tokenizer(text_target=...)`; `parse_response()` прибрано.
 
 #### Крок 5. `TrainingArguments`, `Trainer`, пайплайни, середовище
 
@@ -327,8 +321,8 @@ outputs = pipeline.postprocess(model_outputs)
 ```
 
 Для випадків, коли один вхід вимагає кількох forward-проходів (довге аудіо, zero-shot класифікація,
-question answering), існує `ChunkPipeline`: він робить ту саму роботу, але з автоматичним чанкуванням,
-тож `batch_size` можна оптимізувати незалежно від входів.
+question answering), існує `ChunkPipeline`: та сама робота, але з автоматичним чанкуванням, тож
+`batch_size` можна оптимізувати незалежно від входів.
 
 Розміщення на пристрої: без параметра `device` пайплайн сам бере перший доступний прискорювач (CUDA,
 Apple Silicon MPS, XPU, ...) і лише за їх відсутності — CPU; `device="cpu"` примусово вибирає CPU,
@@ -341,10 +335,8 @@ Apple Silicon MPS, XPU, ...) і лише за їх відсутності — CP
 
 1. Єдиний надійний спосіб дізнатися — виміряти на своїй моделі, даних і залізі.
 2. Не батчте, якщо ви обмежені латентністю (live-продукт) або працюєте на CPU.
-3. Не батчте, якщо не знаєте `sequence_length` своїх даних: вимірюйте, збільшуйте довжину ітеративно й
-   робіть перевірку на OOM.
-4. Батчте, якщо довжина регулярна, і збільшуйте її до появи OOM; заздалегідь переконайтеся, що вмієте
-   обробляти OOM.
+3. Не батчте, якщо не знаєте `sequence_length` своїх даних; якщо довжина регулярна — батчте й
+   збільшуйте її до появи OOM, заздалегідь навчившись обробляти OOM.
 
 Батчинг вимкнений за замовчуванням і «не гарантовано» швидший: на швидкість впливають залізо, дані й
 сама модель.
@@ -501,21 +493,19 @@ eos_token_id=..., pad_token=...)` і завантаження через
 
 #### Свій цикл декодування: `custom_generate`
 
-`custom_generate` приймає репозиторій або локальну теку з файлом `custom_generate/generate.py`.
-Вимоги жорсткі: у файлі **мусить** бути метод `generate`, і його перший аргумент **мусить** називатися
-`model`. Шлях захардкоджений — саме тека `custom_generate`, не корінь репозиторію. Можна передати й
-**callable**, щоб перевикористати всю підготовку входу з `generate` (розширення батчу, маски,
-logits-процесори, критерії зупинки) і замінити лише цикл декодування:
+`custom_generate` приймає репозиторій або локальну теку з файлом `custom_generate/generate.py` (саме
+така тека, не корінь репозиторію). Вимоги жорсткі: у файлі **мусить** бути метод `generate`, і його
+перший аргумент **мусить** називатися `model`. Можна передати й **callable**, щоб перевикористати всю
+підготовку входу з `generate` (розширення батчу, маски, logits-процесори, критерії зупинки) і замінити
+лише цикл декодування:
 
 ```python
 def custom_loop(model, input_ids, attention_mask, logits_processor, stopping_criteria, generation_config, **model_kwargs):
-    next_tokens = input_ids
     while input_ids.shape[1] < stopping_criteria[0].max_length:
-        logits = model(next_tokens, attention_mask=attention_mask, **model_kwargs).logits
-        next_token_logits = logits_processor(input_ids, logits[:, -1, :])
-        next_tokens = torch.argmax(next_token_logits, dim=-1)[:, None]
-        input_ids = torch.cat((input_ids, next_tokens), dim=-1)
-        attention_mask = torch.cat((attention_mask, torch.ones_like(next_tokens)), dim=-1)
+        logits = model(input_ids, attention_mask=attention_mask, **model_kwargs).logits
+        next_token = torch.argmax(logits_processor(input_ids, logits[:, -1, :]), dim=-1)[:, None]
+        input_ids = torch.cat((input_ids, next_token), dim=-1)
+        attention_mask = torch.cat((attention_mask, torch.ones_like(next_token)), dim=-1)
     return input_ids
 
 
@@ -608,8 +598,8 @@ elif "sdpa" in applicable_attention:
 Якщо ви попросили `"sdpa"` **явно** — помилка не глушиться.
 
 Скомпільовані ядра завантажуються з Hub під час виконання, що прибирає проблеми з несумісними версіями
-PyTorch і CUDA; ядра автоматично реєструються в `AttentionInterface` при виявленні, тож окремо
-встановлювати пакет FlashAttention не потрібно:
+PyTorch і CUDA; вони автоматично реєструються в `AttentionInterface`, тож окремо встановлювати пакет
+FlashAttention не потрібно:
 
 ```python
 model = AutoModelForCausalLM.from_pretrained(
@@ -628,19 +618,18 @@ model = AutoModelForCausalLM.from_pretrained(
 повертає `False`, якщо в модулі є клас `*Attention*(nn.Module)`, який **не** використовує
 `ALL_ATTENTION_FUNCTIONS.get_interface(`.
 
-Для мультимодальних моделей бекенди задають словником; ключі мають збігатися з іменами суб-конфігів, а
-порожній ключ задає значення глобально:
+Для мультимодальних моделей бекенди задають словником; ключі мають збігатися з іменами суб-конфігів
+(документація радить перевіряти це явно: `assert key in model.config.sub_configs`), а порожній ключ
+задає значення глобально:
 
 ```python
 from transformers import AutoModelForImageTextToText
 
-# Різні бекенди на бекбон
+# Різні бекенди на бекбон; порожній ключ "" — глобальне значення
 model = AutoModelForImageTextToText.from_pretrained(
     "facebook/chameleon-7b",
     attn_implementation={"vision_config": "sdpa", "text_config": "flash_attention_2"},
 )
-
-# Порожній ключ — глобальне значення; рядок — одразу всім бекбонам
 model = AutoModelForImageTextToText.from_pretrained("facebook/chameleon-7b", attn_implementation={"": "eager"})
 ```
 
@@ -656,12 +645,6 @@ sliding-window обмеження. Маски будують функції `cre
 із конфігу моделі, знаходить у `AttentionMaskInterface` форматер цього бекенду й повертає потрібний
 формат. Застарілі хелпери `get_extended_attention_mask`,
 `create_extended_attention_mask_for_decoder`, `invert_attention_mask` видають deprecation warning.
-
-Для «сирої» 4D-маски діє одна з двох конвенцій: boolean (`True` — бере участь, `False` — виключено) або
-float (`0.0` — бере участь, `-inf` — виключено, бо маска додається до скорів до softmax). Прийнятна
-конвенція **залежить від бекенду**: `sdpa` бере boolean або float, `eager` — лише float, а
-`flash_attention_2` і `flex_attention` споживають власні формати (2D padding-маску і `BlockMask`) і
-«сиру» 4D-маску **не приймають**.
 
 Padding-free (packing) склеює кілька прикладів в одну послідовність замість падінгу, і модель мусить
 знати межі, щоб увага не змішувала токени різних прикладів. Рекомендований шлях — колатор
@@ -771,10 +754,9 @@ for n in tree.body:
         mappings[n.targets[0].id] = pairs
         records += count
 
+clm = mappings["MODEL_FOR_CAUSAL_LM_MAPPING_NAMES"]
 print(f"Файл: {len(source.splitlines())} рядків; словників *_NAMES: {len(mappings)}; "
       f"записів: {records} (унікальних ключів: {sum(len(v) for v in mappings.values())})")
-
-clm = mappings["MODEL_FOR_CAUSAL_LM_MAPPING_NAMES"]
 print(f"MODEL_FOR_CAUSAL_LM_MAPPING_NAMES: {len(clm)} записів")
 for key in ("bert", "llama", "mistral", "qwen3", "deepseek_v4"):
     print(f"  {key:12} -> {ast.unparse(clm[key])}")
@@ -792,17 +774,14 @@ MODEL_FOR_CAUSAL_LM_MAPPING_NAMES: 178 записів
   deepseek_v4  -> 'DeepseekV4ForCausalLM'
 ```
 
-Ті самі дані дають кілька неочевидних фактів:
-
-- Записів більше, ніж унікальних ключів (1709 проти 1708), бо в `MODEL_MAPPING_NAMES` (базові моделі
-  без голови) ключ `sam3_tracker` повторюється: **553 записи, 552 унікальні**. При побудові
-  `OrderedDict` другий запис перетирає перший.
-- Чотири записи мають значенням **кортеж** імен, а не рядок (`funnel` →
-  `("FunnelModel", "FunnelBaseModel")` та три записи в `MODEL_FOR_IMAGE_CLASSIFICATION_MAPPING_NAMES`) —
-  саме для них працює вибір за `architectures` (крок 3).
-- `MODEL_FOR_MULTIMODAL_LM_MAPPING_NAMES` починається зі зірочкового розпакування
-  `*list(MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING_NAMES.items())`, тобто **перевикористовує** відповідності
-  `image-text-to-text` — приклад того, як у v5 прибирають дублювання таблиць.
+Ті самі дані дають кілька неочевидних фактів: записів більше, ніж унікальних ключів (1709 проти 1708),
+бо в `MODEL_MAPPING_NAMES` (базові моделі без голови) ключ `sam3_tracker` повторюється — **553 записи,
+552 унікальні** (при побудові `OrderedDict` другий запис перетирає перший). Чотири записи мають
+значенням **кортеж** імен, а не рядок (`funnel` → `("FunnelModel", "FunnelBaseModel")` та три записи в
+`MODEL_FOR_IMAGE_CLASSIFICATION_MAPPING_NAMES`) — саме для них працює вибір за `architectures` (крок 3).
+А `MODEL_FOR_MULTIMODAL_LM_MAPPING_NAMES` починається зі зірочкового розпакування
+`*list(MODEL_FOR_IMAGE_TEXT_TO_TEXT_MAPPING_NAMES.items())`, тобто **перевикористовує** відповідності
+`image-text-to-text` — приклад того, як у v5 прибирають дублювання таблиць.
 
 #### Крок 2. Зв'язок конфігурації з моделлю: `_LazyAutoMapping`
 
@@ -842,10 +821,10 @@ def __getitem__(self, key):
 
 Ключове тут — три речі: пошук іде **не за `model_type`**, а за **іменем класу конфігурації** (тому
 резолвінг залежить від `CONFIG_MAPPING_NAMES`: якщо ваш `model_type` не має відповідного класу
-конфігурації, до таблиці моделей справа не дійде); є два проходи — точний збіг за зворотною мапою,
-потім пошук «усіх `model_type`, чий клас конфігурації збігається» (для випадків, коли один клас
-конфігурації обслуговує кілька `model_type`); `self._extra_content` перевіряється **першим**, тож усе,
-додане через `register`, має пріоритет над вбудованою таблицею.
+конфігурації, до таблиці моделей справа не дійде); є два проходи — точний збіг за зворотною мапою, а
+потім пошук «усіх `model_type`, чий клас конфігурації збігається» (коли один клас конфігурації
+обслуговує кілька `model_type`); `self._extra_content` перевіряється **першим**, тож усе, додане через
+`register`, має пріоритет.
 
 Імпорт класу робить `_load_attr_from_module`, який перетворює `model_type` на ім'я модуля через
 `model_type_to_module_name` (замінює дефіси на підкреслення й застосовує спеціальну таблицю
@@ -861,8 +840,7 @@ transfo-xl                       -> transfo_xl
 ```
 
 `getattribute_from_module` має окремий механізм для випадку, коли імені немає в модулі моделі: він
-шукає його у **верхньорівневому** `transformers`. Це наслідок того, що деякі записи таблиць
-посилаються на клас іншої моделі.
+шукає його у **верхньорівневому** `transformers` (деякі записи таблиць посилаються на клас іншої моделі).
 
 #### Крок 3. Вибір класу, коли значення — кортеж
 
@@ -916,7 +894,7 @@ remote code зареєструвати власний клас під вбудо
 
 `add_generation_mixin_to_remote_model` — окремий механізм сумісності: якщо динамічно завантажений клас
 не успадковує `GenerationMixin` напряму, але має власні `generate` або `prepare_inputs_for_generation`,
-бібліотека створює новий клас `type(name, (model_class, GenerationMixin), ...)`.
+бібліотека створює клас `type(name, (model_class, GenerationMixin), ...)`.
 
 #### Крок 5. Резолвінг на живому коді (без встановленого `transformers`)
 
@@ -1048,49 +1026,15 @@ _ = kwargs.pop("use_fast", None)
 знайдено й ім'я закінчується на `Fast` — робиться повторна спроба **без** суфікса (для токенізаторів,
 збережених до v5).
 
-Реальні числа з `TOKENIZER_MAPPING_NAMES`:
+Числа з `TOKENIZER_MAPPING_NAMES` (витягнуті тим самим способом через `ast`): **264 ключі**, з яких
+найчастіші класи — `TokenizersBackend` (34 записи), `BertTokenizer` (25), `Qwen2Tokenizer` (21),
+`GPT2Tokenizer` (14), `CLIPTokenizer` (11). Точкові приклади: `bert` → `BertTokenizer`, `qwen3` →
+`Qwen2Tokenizer`, `qwen4_exp` → `Qwen3_5Tokenizer`. Для `deepseek_v4` у літералі таблиці значення немає
+(`None`), бо цей `model_type` додає вже згаданий цикл із `MODELS_WITH_INCORRECT_HUB_TOKENIZER_CLASS`.
 
-```python
-import ast
-import pathlib
-from collections import Counter
-
-
-def const_str(node):
-    """Витягує ім'я класу, зокрема з 'X if is_tokenizers_available() else None'."""
-    if isinstance(node, ast.Constant) and isinstance(node.value, str):
-        return node.value
-    if isinstance(node, ast.IfExp):
-        return const_str(node.body)
-    return None
-
-
-tree = ast.parse(pathlib.Path("research/hf5src/models_auto_tokenization_auto.py").read_text(encoding="utf-8"))
-node = next(n for n in tree.body if isinstance(n, ast.Assign)
-            and getattr(n.targets[0], "id", None) == "TOKENIZER_MAPPING_NAMES")
-names = {const_str(el.elts[0]): const_str(el.elts[1]) for el in node.value.args[0].elts
-         if isinstance(el, ast.Tuple) and len(el.elts) == 2 and const_str(el.elts[0]) is not None}
-
-print(f"TOKENIZER_MAPPING_NAMES: {len(names)} ключів")
-print("Найчастіші класи:", Counter(names.values()).most_common(5))
-print({k: names.get(k) for k in ("bert", "qwen3", "qwen4_exp", "deepseek_v4")})
-```
-
-Реальний вивід:
-
-```text
-TOKENIZER_MAPPING_NAMES: 264 ключів
-Найчастіші класи: [('TokenizersBackend', 34), ('BertTokenizer', 25), ('Qwen2Tokenizer', 21), ('GPT2Tokenizer', 14), ('CLIPTokenizer', 11)]
-{'bert': 'BertTokenizer', 'qwen3': 'Qwen2Tokenizer', 'qwen4_exp': 'Qwen3_5Tokenizer', 'deepseek_v4': None}
-```
-
-`deepseek_v4` тут `None`, і це не помилка витягування: цього `model_type` немає в літералі таблиці. Його
-додає цикл після неї — для кожного `model_type` зі списку `MODELS_WITH_INCORRECT_HUB_TOKENIZER_CLASS`
-(46 значень) у таблицю дописується `TokenizersBackend`, якщо ключа ще немає.
-
-Два висновки: **`TokenizersBackend` — найчастіший клас (34 записи)**, що є прямим наслідком рішення v5
-«відмовитися від поділу fast/slow і зосередитися на бекенді `tokenizers`»; і **`llama` у таблиці
-немає** — є лише `code_llama`, тож для моделей родини Llama клас вибирається не цим шляхом, а через
+Два висновки: `TokenizersBackend` — найчастіший клас, що є прямим наслідком рішення v5 «відмовитися
+від поділу fast/slow і зосередитися на бекенді `tokenizers`»; і **`llama` у таблиці немає** — є лише
+`code_llama`, тож для моделей родини Llama клас вибирається не цим шляхом, а через
 `tokenizer_config.json` / `tokenizer.json` (саме тому в коді є шар сумісності з іменами `*Fast`).
 
 `AutoProcessor` збирається так само, але зі своєї таблиці з `auto_mappings`:
@@ -1141,13 +1085,12 @@ TOKENIZER_MAPPING_NAMES: 264 ключів
 робота через офлоад. І саме тут найбільше застарілих звичок із v4.
 
 **Як працює під капотом.** Документація `from_pretrained` описує `dtype` так: типове значення —
-`"auto"`, і є три варіанти поведінки. Явний `torch.dtype` (`torch.float16`, `torch.bfloat16`,
-`torch.float`) вантажить модель у цьому типі, ігноруючи `config.dtype`; якщо не задати нічого, модель
-завантажиться в `torch.float` (fp32). Значення `"auto"` спершу бере `dtype` або `torch_dtype` із
-`config.json`, а якщо запису немає — `dtype` першої ваги з плаваючою точкою в чекпойнті: це тип, у
-якому модель **зберегли**, і він не є індикатором того, у якому типі її тренували. Третій варіант —
-рядок із валідною назвою `torch.dtype` (`"float32"`, `"float16"` тощо). Застарілий `torch_dtype` ще
-приймається, але з попередженням «`torch_dtype` is deprecated! Use `dtype` instead!».
+`"auto"`. Явний `torch.dtype` вантажить модель у цьому типі, ігноруючи `config.dtype`; якщо не задати
+нічого, модель завантажиться в `torch.float` (fp32). Значення `"auto"` спершу бере `dtype` або
+`torch_dtype` із `config.json`, а якщо запису немає — `dtype` першої ваги з плаваючою точкою в
+чекпойнті: це тип, у якому модель **зберегли**, і він не є індикатором того, у якому типі її тренували.
+Третій варіант — рядок із валідною назвою `torch.dtype` (`"float32"`, `"float16"`). Застарілий
+`torch_dtype` ще приймається, але з попередженням «`torch_dtype` is deprecated! Use `dtype` instead!».
 
 Арифметика пам'яті — це множення, а не вимір:
 
@@ -1168,18 +1111,16 @@ TOKENIZER_MAPPING_NAMES: 264 ключів
 обчислює оптимальну мапу; значення `"disk"` у словнику — офлоад на диск, для якого потрібен
 `offload_folder` (і за потреби `offload_buffers`).
 
-Решта параметрів тієї самої довідки: `max_memory` (словник «пристрій → максимум пам'яті», типово
-максимум доступної пам'яті кожного GPU плюс доступна RAM); `distributed_config` для нативного
-розподіленого завантаження (`DistributedConfig(tp_size=N)`, `DistributedConfig(tp_plan=...)` або
-`DistributedConfig(fsdp_size=N)` для FSDP2) — потребує `torchrun` та ініціалізованої групи процесів,
-коли `tp_size > 1` або `fsdp_size > 1`, і **взаємовиключний із `device_map`**; `disable_mmap` (вимикає
+Решта параметрів тієї самої довідки: `max_memory` (словник «пристрій → максимум пам'яті»); окремий —
+`distributed_config` для нативного розподіленого завантаження (TP через `tp_size`/`tp_plan`, FSDP2 через
+`fsdp_size`), який потребує `torchrun` і **взаємовиключний із `device_map`**; `disable_mmap` (вимикає
 memory mapping safetensors; типово авто-`True` на FUSE-ФС `hf-mount`, де mmap і паралельні page-faults
 можуть завести в дедлок); `weights_only` (типово `True` — unpickler обмежений тензорами, примітивами й
 типами з `torch.serialization.add_safe_globals()`); `fusion_config` (ф'юзинг перед інстанціюванням:
 документація застерігає, що це оптимізація інференсу, яка **може трохи змінити вихід**); `key_mapping`
 (перейменування ваг, якщо чекпойнт сумісний за архітектурою, але назви ключів інші). Окремий шар —
-`local_torch_dtype`: контекстний менеджер, який локально змінює типовий dtype PyTorch на час
-ініціалізації моделі й повертає попередній при виході.
+`local_torch_dtype`: контекстний менеджер, який на час ініціалізації моделі підмінює типовий dtype
+PyTorch і повертає попередній при виході.
 
 **Робочий приклад.** Перевірка пристроїв і оцінка пам'яті перед завантаженням — усе без `transformers`:
 
@@ -1228,9 +1169,9 @@ PCIe 8-pin роз'ємів (інакше GPU не дасть повної про
   задавайте `device_map="auto"` під `torchrun`: сирці попереджають, що разом із `WORLD_SIZE > 1` це
   «може призвести до неочікуваної поведінки».
 - **Очікувати, що `dtype="auto"` дасть тип тренування.** Це тип, у якому чекпойнт **збережено**.
-- **Забути `offload_folder`, коли в `device_map` є `"disk"`.**
-- **Змішувати `torch.float16` із FlashAttention на vision-бекбонах.** Деякі vision-бекбони краще
-  працюють у fp32, а FlashAttention fp32 не підтримує.
+- **Забути `offload_folder`, коли в `device_map` є `"disk"`**, і **змішувати `torch.float16` із
+  FlashAttention на vision-бекбонах**: деякі vision-бекбони краще працюють у fp32, а FlashAttention
+  fp32 не підтримує.
 - **Вважати, що обчислені гігабайти — це вимога до пам'яті.** Множення не враховує KV-кеш, активації,
   проміжні буфери, фрагментацію й копії при офлоаді.
 
@@ -1255,16 +1196,11 @@ PCIe 8-pin роз'ємів (інакше GPU не дасть повної про
 
 - [MIGRATION_GUIDE_V5.md](https://raw.githubusercontent.com/huggingface/transformers/main/MIGRATION_GUIDE_V5.md) — головне джерело для 19.1 і 19.2
 - [Transformers v5: Simple model definitions powering the AI ecosystem](https://huggingface.co/blog/transformers-v5) — анонс v5, `AttentionInterface`, `transformers serve`, безперервний батчинг і paged attention
-- [Pipeline tutorial](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/pipeline_tutorial.md) — `Pipeline`, пристрої, батчинг, `dtype`, `model_kwargs`
-- [Pipelines (main classes)](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/main_classes/pipelines.md) — перелік задач і класів пайплайнів
-- [Generation strategies](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/generation_strategies.md) — greedy, sampling, beam, `custom_generate`
-- [Text generation (llm_tutorial)](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/llm_tutorial.md) — таблиця генераційних параметрів, пастки довжини, padding, формату промпту
+- [Pipeline tutorial](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/pipeline_tutorial.md) і [Pipelines (main classes)](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/main_classes/pipelines.md) — `Pipeline`, пристрої, батчинг, перелік задач і класів
+- [Generation strategies](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/generation_strategies.md) і [Text generation (llm_tutorial)](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/llm_tutorial.md) — стратегії декодування, таблиця параметрів, пастки padding і формату промпту
 - [Generation (main classes)](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/main_classes/text_generation.md) — `GenerationConfig`, `GenerationMixin`, `ContinuousMixin`, `ContinuousBatchingManager`
-- [Attention backends](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/attention_interface.md) — реєстр бекендів, `AttentionMaskInterface`, маски, `is_causal`
-- [Padding-free training](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/padding_free.md) — `DataCollatorWithFlattening`, `return_flash_attn_kwargs`
-- [Paged attention](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/paged_attention.md) — varlen і decode шляхи, `block_table`
-- [Building a GPU workstation](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/perf_hardware.md) — живлення, охолодження, `nvidia-smi topo -m`
-- [Auto classes (model_doc/auto)](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/model_doc/auto.md) — перелік Auto-класів і розширення через `register`
+- [Attention backends](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/attention_interface.md), [Padding-free training](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/padding_free.md), [Paged attention](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/paged_attention.md) — реєстр бекендів, `AttentionMaskInterface`, packing, `block_table`
+- [Building a GPU workstation](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/perf_hardware.md) і [Auto classes (model_doc/auto)](https://raw.githubusercontent.com/huggingface/transformers/main/docs/source/en/model_doc/auto.md) — залізо й перелік Auto-класів
 - Реальні сирці Transformers v5 у репозиторії: `research/hf5src/modeling_utils.py`,
   `research/hf5src/models_auto_auto_factory.py`, `research/hf5src/models_auto_modeling_auto.py`,
   `research/hf5src/models_auto_configuration_auto.py`, `research/hf5src/models_auto_tokenization_auto.py`,
