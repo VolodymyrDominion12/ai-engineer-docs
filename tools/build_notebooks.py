@@ -47,6 +47,17 @@ def build(module) -> Path:
     if missing:
         raise AttributeError(f"{module.__name__}: немає змінних {', '.join(missing)}")
 
+    # Запобіжник: керуючі символи в джерелі клітинки ламають токенізатор IPython
+    # (найчастіше — справжній NUL-байт, коли в модулі написано "\x00" замість "\\x00").
+    for i, cell in enumerate(module.CELLS):
+        bad = {ch for ch in cell.source if ord(ch) < 32 and ch not in "\n\t"}
+        if bad:
+            codes = ", ".join(hex(ord(c)) for c in sorted(bad))
+            raise ValueError(
+                f"{module.__name__}: клітинка {i} містить керуючі символи ({codes}). "
+                "У модулі подвойте зворотний слеш: замініть \\x00 на \\\\x00."
+            )
+
     nb = nbf.v4.new_notebook(cells=module.CELLS)
     nb.metadata = {
         "kernelspec": {"display_name": "Python 3", "language": "python", "name": "python3"},

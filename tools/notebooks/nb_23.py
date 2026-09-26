@@ -211,6 +211,7 @@ class Span:
     events: list = field(default_factory=list)
     status: dict = field(default_factory=lambda: {"code": "UNSET"})
     instrumentation_scope: str = _INSTRUMENTATION_SCOPE
+    clock: "Callable[[], int]" = time.time_ns    # джерело часу (можна підмінити)
 
     # ── зміна стану ──────────────────────────────────────────────────────
     def set_attribute(self, key: str, value) -> None:
@@ -219,13 +220,13 @@ class Span:
     def add_event(self, name: str, attributes: dict | None = None) -> None:
         self.events.append({
             "name": name,
-            "timeUnixNano": time.time_ns(),
+            "timeUnixNano": self.clock(),
             "attributes": dict(attributes or {}),
         })
 
     def end(self) -> None:
         if self.end_ns is None:
-            self.end_ns = time.time_ns()
+            self.end_ns = self.clock()
 
     @property
     def duration_ms(self) -> float:
@@ -310,8 +311,9 @@ class ConsoleSpanExporter:
 class Tracer:
     """Мінімальний трасувальник: створює спани й тримає контекст."""
 
-    def __init__(self, exporter: ConsoleSpanExporter) -> None:
+    def __init__(self, exporter: ConsoleSpanExporter, clock=time.time_ns) -> None:
         self.exporter = exporter
+        self.clock = clock
 
     @contextmanager
     def start_span(self, name, *, kind="INTERNAL", attributes=None,
@@ -326,8 +328,9 @@ class Tracer:
             trace_id=trace_id,
             span_id=new_span_id(),
             parent_span_id=parent_span.span_id if parent_span else None,
-            start_ns=time.time_ns(),
+            start_ns=self.clock(),
             attributes=dict(attributes or {}),
+            clock=self.clock,
         )
         token = _CURRENT_SPAN.set(span)
         try:
